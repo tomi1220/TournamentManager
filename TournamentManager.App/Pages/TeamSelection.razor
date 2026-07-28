@@ -2,13 +2,14 @@
 @using TournamentManager.Core.Models
 @using TournamentManager.Core.Services
 @using System.Linq
+using System.Text.Json
 
 @inject TournamentState State
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <div class="selection-container no-print">
-    <h2>大会出場チーム確定パネル</h2>
+    <h2>@State.CurrentTournament?.Name のチーム選択</h2>
 
     <div class="gender-selector">
         <button @onclick='() => SwitchGender("Men")' class='@(State.CurrentGender == "Men" ? "active" : "")'>男子 登録管理</button>
@@ -34,14 +35,15 @@
     </div>
 
     <div class="summary-box">
-        <p>現在の選択状況: <strong>@selectedTeamIdsCount</strong> チームが選択されています。</p>
-        @if (selectedTeamIdsCount > 99)
+        <!-- 💡 選択数は State から直接カウントを取得 -->
+        <p>現在の選択状況: <strong>@GetSelectedCount()</strong> チームが選択されています。</p>
+        @if (GetSelectedCount() > 99)
         {
             <p class="error-text">※最大99チームを超えています。調整してください。</p>
         }
-        else if (selectedTeamIdsCount > 0)
+        else if (GetSelectedCount() > 0)
         {
-            <p class="success-text">（トーナメント総枠数: @CalculateTotalSlots(selectedTeamIdsCount) 枠）</p>
+            <p class="success-text">（トーナメント総枠数: @CalculateTotalSlots(GetSelectedCount()) 枠）</p>
         }
     </div>
 
@@ -56,8 +58,9 @@
                         @foreach (var team in areaGroup)
                         {
                             <label class="team-checkbox-label" @key="team.Id">
-                                <input type="checkbox" 
-                                       checked="@IsTeamSelected(team.Id)" 
+                                <!-- 💡 チェック状態と変更イベントを State 連動に修正 -->
+                                <input type="checkbox"
+                                       checked="@IsTeamSelected(team.Id)"
                                        @onchange="(e) => ToggleTeamSelection(team.Id, e.Value)" />
                                 <span class="team-name-span">@team.Name</span>
                             </label>
@@ -73,8 +76,76 @@
     }
 
     <div class="action-bar">
-        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(selectedTeamIdsCount < 2 || selectedTeamIdsCount > 99)">
+        <!-- 💡 ボタンの非活性化条件も State のカウントを参照 -->
+        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(GetSelectedCount() < 2 || GetSelectedCount() > 99)">
             このチーム数で確定して抽選会へ
         </button>
     </div>
 </div>
+
+@code
+{
+    private const string StorageKey = "SavedTournamentsData";
+
+    // データをローカルストレージから読み込む
+    public async Task LoadFromStorageAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(json))
+            {
+                State.SavedTournaments = JsonSerializer.Deserialize<List<TournamentInfo>>(json) ?? new();
+            }
+        }
+        catch
+        {
+            // 初回アクセス時やエラー時は空のリスト
+            State.SavedTournaments = new();
+        }
+    }
+
+    // データをローカルストレージに保存する
+    public async Task SaveToStorageAsync()
+    {
+        var json = JsonSerializer.Serialize(SavedTournaments);
+        await _js.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+    }
+
+/*
+    <!-- 例: 保存された状態からデータをバインドする -->
+    @foreach (var team in AllTeams)
+    {
+        <div>
+            <input type="checkbox"
+                   checked="@State.SelectedTeams.Contains(team)"
+                   @onchange="(e) => ToggleTeam(team, e.Value)" />
+            @team
+        </div>
+    }
+
+    <button @onclick="GoToLottery">抽選画面へ移動</button>
+
+    @code {
+        private List<string> AllTeams = new() { "チームA", "チームB", "チームC", "チームD" };
+
+        private void ToggleTeam(string team, object? isChecked)
+        {
+            if (isChecked is true && !State.SelectedTeams.Contains(team))
+            {
+                State.SelectedTeams.Add(team);
+            }
+            else if (isChecked is false)
+            {
+                State.SelectedTeams.Remove(team);
+            }
+        }
+
+        private void GoToLottery()
+        {
+            NavManager.NavigateTo("/lottery-draw");
+        }
+    }
+     *
+ */
+}

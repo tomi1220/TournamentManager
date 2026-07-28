@@ -1,7 +1,83 @@
 ﻿@page "/"
+@using TournamentManager.Core.Services
+@using TournamentManager.Core.Models
+@inject TournamentState State
+@inject NavigationManager NavManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ホーム - 大会管理</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>バスケ大会管理システム</h1>
 
-Welcome to your new app.
+@if (isLoading)
+{
+    <p>データを読み込み中...</p>
+}
+else
+{
+    <div style="display: flex; gap: 40px; margin-top: 20px;">
+        <!-- 左側：新規作成 -->
+        <div style="flex: 1; border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <h3>① 新しい大会を作る</h3>
+            <div style="margin-top: 15px;">
+                <label>大会名：</label>
+                <input @bind="newTournamentName" placeholder="例：夏の市民大会" class="form-control" />
+            </div>
+            <button @onclick="CreateAndStart" class="btn btn-primary" style="margin-top: 15px;" disabled="@string.IsNullOrWhiteSpace(newTournamentName)">
+                作成してチーム登録へ
+            </button>
+        </div>
+
+        <!-- 右側：既存の選択 -->
+        <div style="flex: 1; border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <h3>② 既存の大会を選ぶ</h3>
+            @if (!State.SavedTournaments.Any())
+            {
+                <p style="color: gray; margin-top: 15px;">保存された大会はありません。</p>
+            }
+            else
+            {
+                <ul style="list-style: none; padding: 0; margin-top: 15px;">
+                    @foreach (var tournament in State.SavedTournaments)
+                    {
+                        <li style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>@tournament.Name <small style="color: gray;">(@tournament.CreatedAt.ToString("yyyy/MM/dd"))</small></span>
+                            <button @onclick="() => SelectAndStart(tournament)" class="btn btn-secondary btn-sm">
+                                開開く
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string newTournamentName = "";
+    private bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // 画面起動時にローカルストレージからデータをロード
+            await State.LoadFromStorageAsync();
+            isLoading = false;
+            StateHasChanged(); // 再描画を要求
+        }
+    }
+
+    private async Task CreateAndStart()
+    {
+        if (string.IsNullOrWhiteSpace(newTournamentName)) return;
+
+        await State.CreateNewTournamentAsync(newTournamentName);
+        NavManager.NavigateTo("/team-selection");
+    }
+
+    private void SelectAndStart(TournamentInfo tournament)
+    {
+        State.CurrentTournament = tournament;
+        NavManager.NavigateTo("/team-selection");
+    }
+}

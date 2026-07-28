@@ -6,6 +6,14 @@ using System.Threading.Tasks;
 
 namespace TournamentManager.Core.Models
 {
+    public class TournamentInfo
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public List<string> Teams { get; set; } = new();
+    }
+
     public class Team
     {
         public string Id { get; set; } = "";

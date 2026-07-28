@@ -1,0 +1,298 @@
+﻿@page "/bracket"
+@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Text.Json
+@inject TournamentState State
+@inject IJSRuntime JS
+
+<div class="tournament-wrapper">
+    <h2>@State.CurrentTournament?.Name のスコア入力・速報公開 (@(State.CurrentGender == "Men" ? "男子" : "女子"))</h2>
+
+    <div class="control-panel no-print" style="background: #eef2f7; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+        <button @onclick='() => ChangeGender("Men")' class='@(currentGender == "Men" ? "active" : "")'>男子</button>
+        <button @onclick='() => ChangeGender("Women")' class='@(currentGender == "Women" ? "active" : "")'>女子</button>
+        <span class="info" style="margin: 0 15px; font-weight: bold;">参加: @State.GetActiveEntry().ConfirmedTeams.Count チーム</span>
+
+        <!-- 【新規：データ保存・復元操作ボタン】 -->
+        <button @onclick="ExportDataToJson" class="btn-save-file" style="background: #28a745; color:white; border:none; padding: 6px 12px; margin-right: 5px; border-radius:4px; cursor:pointer;">
+            💾 今日の結果をファイル保存
+        </button>
+
+        <label class="btn-load-file" style="background: #007bff; color:white; padding: 6px 12px; border-radius:4px; cursor:pointer; display:inline-block; font-size:14px;">
+            📂 続きから再開（ファイルを読込）
+            <InputFile OnChange="ImportDataFromJson" style="display: none;" />
+        </label>
+
+        <!-- BracketView.razor のコントロールパネル内に追記 -->
+        <button @onclick="PublishLiveSpeedReport" class="btn-publish-live" style="background: #dc3545; color:white; border:none; padding: 6px 12px; margin-right: 5px; border-radius:4px; cursor:pointer; font-weight:bold;">
+            🚀 スマホへ試合結果を速報公開！
+        </button>
+
+        <button onclick="window.print()" class="btn-print" style="float: right;">A3/A2サイズで印刷</button>
+    </div>
+
+    <svg width="1400" height="1200" viewBox="0 0 1400 1200" xmlns="http://w3.org">
+        <style>
+            .match-line {
+                stroke: #111111;
+                stroke-width: 2;
+                fill: none;
+            }
+            /* 【新規】勝者ルート用の赤太線スタイル */
+            .winner-line {
+                stroke: #ff0000;
+                stroke-width: 4;
+                fill: none;
+            }
+
+            .team-name {
+                font-size: 13px;
+                font-weight: bold;
+                fill: #ff0000;
+                font-family: 'sans-serif';
+            }
+
+            .area-name {
+                font-size: 11px;
+                fill: #0000ff;
+                font-family: 'sans-serif';
+            }
+
+            .slot-number {
+                font-size: 10px;
+                fill: #555555;
+            }
+
+            .score-text {
+                font-size: 12px;
+                font-weight: bold;
+                fill: #000000;
+                text-anchor: middle;
+            }
+
+            .interactive-node {
+                fill: transparent;
+                stroke: #aaa;
+                stroke-width: 1;
+                stroke-dasharray: 4;
+                cursor: pointer;
+            }
+
+                .interactive-node:hover {
+                    fill: rgba(0,0,0,0.05);
+                }
+        </style>
+
+        @if (engine != null && engine.Matches != null)
+        {
+            @foreach (MatchNode match in engine.Matches)
+            {
+                // 【修正】固定の .match-line から、エンジンが計算した動的クラス（赤線対応）に変更
+                <line x1="@match.LineStartXA" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentAY" class="@match.ClassLineA" />
+                <line x1="@match.LineStartXB" y1="@match.ParentBY" x2="@match.X" y2="@match.ParentBY" class="@match.ClassLineB" />
+
+                // 垂直縦線を上半分と下半分に分けて正確に勝者ルートだけ赤く引く
+                <line x1="@match.X" y1="@match.ParentAY" x2="@match.X" y2="@match.Y" class="@match.ClassVerticalA" />
+                <line x1="@match.X" y1="@match.Y" x2="@match.X" y2="@match.ParentBY" class="@match.ClassVerticalB" />
+
+                // 次のラウンドへ向かう横線
+                <line x1="@match.X" y1="@match.Y" x2="@(match.X + 160)" y2="@match.Y" class="@match.ClassNextLine" />
+
+                <circle cx="@match.X" cy="@match.Y" r="10" class="interactive-node" @onclick="() => OnMatchClick(match)" />
+            }
+        }
+
+        @if (engine != null && engine.SvgTexts != null)
+        {
+            @foreach (SvgTextElement txt in engine.SvgTexts)
+            {
+                <SvgText X="@txt.X" Y="@txt.Y" CssClass="@txt.CssClass">@txt.Content</SvgText>
+            }
+        }
+    </svg>
+
+    @if (selectedMatch != null)
+    {
+        <div class="modal-backdrop no-print">
+            <div class="score-modal">
+                <h3>試合結果入力</h3>
+                <div class="input-row">
+                    <label>@(selectedMatch.TeamA?.Name ?? "未定")</label>
+                    <input type="number" @bind="inputScoreA" />
+                </div>
+                <div class="input-row">
+                    <label>@(selectedMatch.TeamB?.Name ?? "未定")</label>
+                    <input type="number" @bind="inputScoreB" />
+                </div>
+                <div class="actions">
+                    <button @onclick="SaveMatchResult" class="btn-save">反映</button>
+                    <button @onclick="() => selectedMatch = null" class="btn-cancel">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string currentGender = "Men";
+    private TournamentEngine engine = new TournamentEngine();
+
+    private MatchNode? selectedMatch;
+    private int inputScoreA;
+    private int inputScoreB;
+    // BracketView.razor の @code ブロックの末尾へ追記
+
+    // ※あらかじめ、Firebase等のエンドポイントURLを定義します
+    // （実務では appsettings.json などに逃がすか、定数管理します）
+    private const string FirebaseUrl = "https://firebaseio.com";
+
+    protected override void OnInitialized()
+    {
+        RefreshStructure();
+    }
+
+    private void RefreshStructure()
+    {
+        var activeEntry = State.GetActiveEntry();
+        engine.BuildStructure(activeEntry.ConfirmedTeams, activeEntry.SlotAssignments, activeEntry.MatchResults);
+    }
+
+    private void ChangeGender(string gender)
+    {
+        State.CurrentGender = gender;
+        currentGender = gender;
+        RefreshStructure();
+    }
+
+    private void OnMatchClick(MatchNode match)
+    {
+        selectedMatch = match;
+        inputScoreA = match.ScoreA ?? 0;
+        inputScoreB = match.ScoreB ?? 0;
+    }
+
+    private void SaveMatchResult()
+    {
+        if (selectedMatch != null)
+        {
+            var activeEntry = State.GetActiveEntry();
+            string wId = inputScoreA > inputScoreB ? (selectedMatch.TeamA?.Id ?? "") : (selectedMatch.TeamB?.Id ?? "");
+
+            activeEntry.MatchResults[selectedMatch.MatchId] = new MatchResult
+            {
+                ScoreA = inputScoreA,
+                ScoreB = inputScoreB,
+                WinnerTeamId = string.IsNullOrEmpty(wId) ? null : wId
+            };
+
+            selectedMatch = null;
+            RefreshStructure();
+        }
+    }
+
+    // ==========================================================================
+    // 【新規】現在の全データ（男女両方）を1つのJSONファイルにまとめてダウンロードさせる処理
+    // ==========================================================================
+    private async Task ExportDataToJson()
+    {
+        // 状態空間（State）にある男子と女子のエントリーデータをシリアライズの対象にする
+        var exportPack = new Dictionary<string, TournamentEntry>
+        {
+            { "Men", State.MenEntry },
+            { "Women", State.WomenEntry }
+        };
+
+        string jsonString = JsonSerializer.Serialize(exportPack, new JsonSerializerOptions { WriteIndented = true });
+
+        // ブラウザのJavaScriptを経由してダウンロードを発火させるための簡易処理
+        string fileName = $"Tournament_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(jsonString);
+        string base64 = Convert.ToBase64String(bytes);
+        string fileUrl = $"data:application/json;base64,{base64}";
+
+        // IJSRuntime を使用してブラウザにダウンロード処理を実行させる指示
+        await JS.InvokeVoidAsync("eval", $"const a = document.createElement('a'); a.href = '{fileUrl}'; a.download = '{fileName}'; document.body.appendChild(a); a.click(); document.body.removeChild(a);");
+    }
+
+    // ==========================================================================
+    // 【新規】PCに保存されたJSONファイルを受け取り、大会状態をメモリに完全復元する処理
+    // ==========================================================================
+    private async Task ImportDataFromJson(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            using var stream = e.File.OpenReadStream();
+            using var reader = new System.IO.StreamReader(stream);
+            string jsonString = await reader.ReadToEndAsync();
+
+            var importPack = JsonSerializer.Deserialize<Dictionary<string, TournamentEntry>>(jsonString);
+
+            if (importPack != null)
+            {
+                // メモリ上の TournamentState を読み込んだデータで完全に上書き
+                if (importPack.TryGetValue("Men", out var menData))
+                {
+                    State.MenEntry.ConfirmedTeams.Clear();
+                    State.MenEntry.ConfirmedTeams.AddRange(menData.ConfirmedTeams);
+                    State.MenEntry.SlotAssignments.Clear();
+                    foreach (var kv in menData.SlotAssignments) State.MenEntry.SlotAssignments[kv.Key] = kv.Value;
+                    State.MenEntry.MatchResults.Clear();
+                    foreach (var kv in menData.MatchResults) State.MenEntry.MatchResults[kv.Key] = kv.Value;
+                }
+
+                if (importPack.TryGetValue("Women", out var womenData))
+                {
+                    State.WomenEntry.ConfirmedTeams.Clear();
+                    State.WomenEntry.ConfirmedTeams.AddRange(womenData.ConfirmedTeams);
+                    State.WomenEntry.SlotAssignments.Clear();
+                    foreach (var kv in womenData.SlotAssignments) State.WomenEntry.SlotAssignments[kv.Key] = kv.Value;
+                    State.WomenEntry.MatchResults.Clear();
+                    foreach (var kv in womenData.MatchResults) State.WomenEntry.MatchResults[kv.Key] = kv.Value;
+                }
+
+                RefreshStructure();
+                await JS.InvokeVoidAsync("alert", "大会データを正常にインポートし、状態を復元しました。");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"ファイルの読み込みに失敗しました: {ex.Message}");
+        }
+    }
+
+    private async System.Threading.Tasks.Task PublishLiveSpeedReport()
+    {
+        try
+        {
+            // 1. 現在メモリ（State）にある男女すべてのデータを1つのオブジェクトにパッキング
+            var livePack = new System.Collections.Generic.Dictionary<string, TournamentEntry>
+        {
+            { "Men", State.MenEntry },
+            { "Women", State.WomenEntry }
+        };
+
+            // 2. JSONへのシリアライズ
+            string jsonString = System.Text.Json.JsonSerializer.Serialize(livePack);
+
+            // 3. HttpClientによるクラウドへの直接上書き送信 (HTTP PUT)
+            using var client = new System.Net.Http.HttpClient();
+            var content = new System.Net.Http.StringContent(jsonString, System.Text.Encoding.UTF8, "application/json");
+
+            // FirebaseのREST APIは、PUT送信したJSONでその階層のデータを1発で綺麗に上書きしてくれます
+            var response = await client.PutAsync(FirebaseUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "【速報公開完了】一般観客のスマホ画面にリアルタイム反映されました！");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", $"速報の公開に失敗しました。ステータスコード: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"通信エラーが発生しました: {ex.Message}");
+        }
+    }
+}

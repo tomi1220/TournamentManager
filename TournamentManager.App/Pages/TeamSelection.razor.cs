@@ -36,23 +36,59 @@ namespace TournamentManager.App.Pages
 
         private bool IsTeamSelected(string teamId)
         {
-            return selectedTeamIdsTable.ContainsKey(teamId);
+            //return selectedTeamIdsTable.ContainsKey(teamId);
+
+            if (State.CurrentTournament == null)
+            {
+                return false;
+            }
+
+            // 大会情報モデル(TournamentInfo)の中に選択されたIDリスト(例: SelectedTeamIds)があると仮定
+            // もしTournamentStateの直下にList<int>がある場合は `State.SelectedTeamIds.Contains(teamId)` に書き換えてください
+            return State.CurrentTournament.Teams.Contains(teamId.ToString());
         }
 
         private void ToggleTeamSelection(string teamId, object? isChecked)
         {
-            if (isChecked is bool checkedValue && checkedValue)
+            //if (isChecked is bool checkedValue && checkedValue)
+            //{
+            //    if (!selectedTeamIdsTable.ContainsKey(teamId))
+            //    {
+            //        selectedTeamIdsTable.Add(teamId, true);
+            //    }
+            //}
+            //else
+            //{
+            //    selectedTeamIdsTable.Remove(teamId);
+            //}
+            //selectedTeamIdsCount = selectedTeamIdsTable.Count;
+            if (State.CurrentTournament == null) return;
+
+            var idStr = teamId.ToString();
+            if (isChecked is true)
             {
-                if (!selectedTeamIdsTable.ContainsKey(teamId))
+                if (!State.CurrentTournament.Teams.Contains(idStr))
                 {
-                    selectedTeamIdsTable.Add(teamId, true);
+                    State.CurrentTournament.Teams.Add(idStr);
                 }
             }
             else
             {
-                selectedTeamIdsTable.Remove(teamId);
+                State.CurrentTournament.Teams.Remove(idStr);
             }
-            selectedTeamIdsCount = selectedTeamIdsTable.Count;
+        }
+
+        // 💡 現在の選択数を取得する便利メソッド
+        private int GetSelectedCount()
+        {
+            return State.CurrentTournament?.Teams?.Count ?? 0;
+        }
+
+        private int CalculateTotalSlots(int teamCount)
+        {
+            int slots = 1;
+            while (slots < teamCount) slots *= 2;
+            return slots;
         }
 
         private TournamentEntry SaveCurrentState()
@@ -86,13 +122,6 @@ namespace TournamentManager.App.Pages
                 }
             }
             selectedTeamIdsCount = selectedTeamIdsTable.Count;
-        }
-
-        private int CalculateTotalSlots(int teamCount)
-        {
-            int slots = 1;
-            while (slots < teamCount) slots *= 2;
-            return slots;
         }
 
         private void ConfirmEntries()
@@ -142,6 +171,7 @@ namespace TournamentManager.App.Pages
                     //     activeEntry.SlotAssignments[kvp.Key] = kvp.Value;
                     // }
                     TournamentEntry activeEntry = activeEntry = (TournamentEntry)importedData;
+                    State.CurrentTournament.Teams
                     LoadCurrentState(activeEntry);
 
                     //await SaveAssignmentsToStorageAsync();

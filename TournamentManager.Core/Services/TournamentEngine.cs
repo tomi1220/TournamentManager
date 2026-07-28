@@ -51,7 +51,7 @@ namespace TournamentManager.Core.Services
                     internalSlotToYMap[i] = y;
 
                     SvgTexts.Add(
-                        new SvgTextElement { X = LeftMargin - 10, Y = y + 4,
+                        new SvgTextElement { X = LeftMargin - 20, Y = y + 4,
                             CssClass = "slot-number",
                             Content = (actualRowCounter + 1).ToString() });
 
