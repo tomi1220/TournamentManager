@@ -1,0 +1,243 @@
+﻿@page "/lottery-draw"
+@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Text.Json
+@inject TournamentState State
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="lottery-wrapper">
+    <div class="control-panel no-print">
+        <h2>2. 抽選会・組合せ入力設定 (@(State.CurrentGender == "Men" ? "男子" : "女子"))</h2>
+
+        <div class="save-status-badge">
+            <span class="status-dot"></span> 抽選データはブラウザに自動保存されています
+        </div>
+
+        <div class="file-io-panel" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd;">
+            <h4>大会当日用（別PCへのデータ移行）</h4>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                <button class="btn-export" @onclick="ExportToJsonAsync" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    📥 抽選結果をJSONで保存
+                </button>
+                <div style="position: relative; overflow: hidden; display: inline-block;">
+                    <button class="btn-import-trigger" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        📤 JSONファイルから復元
+                    </button>
+                    <InputFile OnChange="ImportFromJsonAsync" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;" />
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(fileMessage))
+            {
+                <p style="margin-top: 8px; font-size: 12px; color: #333; font-weight: bold;">@fileMessage</p>
+            }
+        </div>
+
+        <p>確定した @activeEntry.ConfirmedTeams.Count チームを枠番号に割り当てます。</p>
+
+        <div class="lottery-layout">
+            <div class="unassigned-box">
+                <h4>未抽選のチーム一覧 (@unassignedTeamsCount)</h4>
+                <div class="unassigned-list">
+                    @if (unassignedTeamsArray != null)
+                    {
+                        @foreach (Team team in unassignedTeamsArray)
+                        {
+                            <div class="team-token">
+                                <span class="area-badge">@team.Area</span> @team.Name
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="assignment-form">
+                <h4>クジ番号の入力</h4>
+                <div class="input-group">
+                    <label>チームを選択:</label>
+                    <select @bind="selectedTeamIdForDraw">
+                        <option value="">-- チームを選択 --</option>
+                        @if (unassignedTeamsArray != null)
+                        {
+                            @foreach (Team team in unassignedTeamsArray)
+                            {
+                                <option value="@team.Id">[@team.Area] @team.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>引いた枠番号 (1～@totalSlotsCount):</label>
+                    <input type="number" @bind="inputSlotNumber" min="1" max="@totalSlotsCount" />
+                </div>
+                <button class="btn-assign" @onclick="AssignTeamToSlot" disabled="@(string.IsNullOrEmpty(selectedTeamIdForDraw) || inputSlotNumber <= 0)">
+                    割り当てを確定
+                </button>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <p class="error-msg">@errorMessage</p>
+                }
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button class="btn-secondary" @onclick="ClearAllAssignments">抽選データを一括リセット</button>
+            <button class="btn-print" onclick="window.print()">この状態でBracketを印刷</button>
+        </div>
+    </div>
+
+    <div class="bracket-display-area">
+        <svg width="1400" height="1200" viewBox="0 0 1400 1200" xmlns="http://w3.org">
+            <style>
+                .match-line {
+                    stroke: #111111;
+                    stroke-width: 2;
+                    fill: none;
+                }
+            </style>
+            @if (engine?.Matches != null)
+            {
+                @foreach (MatchNode match in engine.Matches)
+                {
+                    <line x1="@match.LineStartXA" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentAY" class="match-line" />
+                    <line x1="@match.LineStartXB" y1="@match.ParentBY" x2="@match.X" y2="@match.ParentBY" class="match-line" />
+                    <line x1="@match.X" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentBY" class="match-line" />
+                    <line x1="@match.X" y1="@match.Y" x2="@(match.X + 160)" y2="@match.Y" class="match-line" />
+                }
+            }
+            @if (engine?.SvgTexts != null)
+            {
+                @foreach (SvgTextElement txt in engine.SvgTexts)
+                {
+                    <SvgText X="@txt.X" Y="@txt.Y" CssClass="@txt.CssClass">@txt.Content</SvgText>
+                }
+            }
+        </svg>
+    </div>
+</div>
+
+@code {
+    private TournamentEngine engine = new TournamentEngine();
+    private TournamentEntry activeEntry = new TournamentEntry();
+    private Team[] unassignedTeamsArray = Array.Empty<Team>();
+    private int unassignedTeamsCount = 0;
+    private string selectedTeamIdForDraw = "";
+    private int inputSlotNumber;
+    private int totalSlotsCount;
+    private string errorMessage = "";
+    private string fileMessage = "";
+
+    private string StorageKey => "Tournament_SlotAssignments_" + State.CurrentGender;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            activeEntry = State.GetActiveEntry();
+            await LoadAssignmentsFromStorageAsync();
+            RefreshBracket();
+            StateHasChanged();
+        }
+    }
+
+    private void RefreshBracket()
+    {
+        totalSlotsCount = activeEntry.ConfirmedTeams.Count;
+        unassignedTeamsArray = activeEntry.ConfirmedTeams
+            .Where(t => !activeEntry.SlotAssignments.ContainsValue(t.Id))
+            .ToArray();
+        unassignedTeamsCount = unassignedTeamsArray.Length;
+        engine.BuildStructure(activeEntry.ConfirmedTeams, activeEntry.SlotAssignments, activeEntry.MatchResults);
+    }
+
+    private async Task AssignTeamToSlot()
+    {
+        errorMessage = "";
+        int targetSlotIndex = inputSlotNumber - 1;
+
+        if (inputSlotNumber < 1 || inputSlotNumber > totalSlotsCount)
+        {
+            errorMessage = "枠番号の範囲が不正です。";
+            return;
+        }
+        if (activeEntry.SlotAssignments.ContainsKey(targetSlotIndex))
+        {
+            errorMessage = "既にチームが配置されています。";
+            return;
+        }
+
+        activeEntry.SlotAssignments[targetSlotIndex] = selectedTeamIdForDraw;
+        selectedTeamIdForDraw = "";
+        inputSlotNumber = 0;
+
+        RefreshBracket();
+        await SaveAssignmentsToStorageAsync();
+    }
+
+    private async Task ClearAllAssignments()
+    {
+        activeEntry.SlotAssignments.Clear();
+        fileMessage = "";
+        RefreshBracket();
+        await JS.InvokeVoidAsync("localStorage.removeItem", StorageKey);
+    }
+
+    private async Task ExportToJsonAsync()
+    {
+        try
+        {
+            fileMessage = "";
+            //var json = JsonSerializer.Serialize(activeEntry.SlotAssignments, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(activeEntry, new JsonSerializerOptions { WriteIndented = true });
+            var fileName = $"tournament_slots_{State.CurrentGender}_{DateTime.Now:yyyyMMdd}.json";
+            var jsCommand =
+                $@"(function(filename, text) {{" + Environment.NewLine +
+                $@" var element = document.createElement('a');" + Environment.NewLine +
+                $@" element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(text));" + Environment.NewLine +
+                $@" element.setAttribute('download', filename);" + Environment.NewLine +
+                $@" element.style.display = 'none';" + Environment.NewLine +
+                $@" document.body.appendChild(element);" + Environment.NewLine +
+                $@" element.click();" + Environment.NewLine +
+                $@" document.body.removeChild(element);" + Environment.NewLine +
+                $@"}})('{fileName}', `{json.Replace("`", "\\`").Replace("$", "\\$")}`)";
+            await JS.InvokeVoidAsync("eval", jsCommand);
+            fileMessage = $"✅ {fileName} をダウンロードしました。";
+        }
+        catch (Exception ex)
+        {
+            fileMessage = $"❌ エクスポート失敗: {ex.Message}";
+        }
+    }
+
+    private async Task SaveAssignmentsToStorageAsync()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(activeEntry.SlotAssignments);
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+        }
+        catch (Exception) { }
+    }
+
+    private async Task LoadAssignmentsFromStorageAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(json))
+            {
+                var savedData = JsonSerializer.Deserialize<Dictionary<int, string>>(json);
+                if (savedData != null)
+                {
+                    activeEntry.SlotAssignments.Clear();
+                    foreach (var kvp in savedData)
+                    {
+                        activeEntry.SlotAssignments[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+        }
+        catch (Exception) { }
+    }
+}

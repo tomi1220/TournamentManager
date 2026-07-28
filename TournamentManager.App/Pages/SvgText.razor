@@ -1,0 +1,9 @@
+﻿/* Blazorのパーサーを騙すため、C#側から完全に純粋な text 要素として出力するコンポーネント */
+<text x="@X" y="@Y" class="@CssClass">@ChildContent</text>
+
+@code {
+    [Parameter] public double X { get; set; }
+    [Parameter] public double Y { get; set; }
+    [Parameter] public string CssClass { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,80 @@
+﻿@page "/team-selection"
+@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Linq
+
+@inject TournamentState State
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="selection-container no-print">
+    <h2>大会出場チーム確定パネル</h2>
+
+    <div class="gender-selector">
+        <button @onclick='() => SwitchGender("Men")' class='@(State.CurrentGender == "Men" ? "active" : "")'>男子 登録管理</button>
+        <button @onclick='() => SwitchGender("Women")' class='@(State.CurrentGender == "Women" ? "active" : "")'>女子 登録管理</button>
+    </div>
+
+    <div class="file-io-panel" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd;">
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+            <button class="btn-export" @onclick="ExportToJsonAsync" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                📥 出場チームをJSONで保存
+            </button>
+            <div style="position: relative; overflow: hidden; display: inline-block;">
+                <button class="btn-import-trigger" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    📤 JSONファイルから復元
+                </button>
+                <InputFile OnChange="ImportFromJsonAsync" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;" />
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(fileMessage))
+        {
+            <p style="margin-top: 8px; font-size: 12px; color: #333; font-weight: bold;">@fileMessage</p>
+        }
+    </div>
+
+    <div class="summary-box">
+        <p>現在の選択状況: <strong>@selectedTeamIdsCount</strong> チームが選択されています。</p>
+        @if (selectedTeamIdsCount > 99)
+        {
+            <p class="error-text">※最大99チームを超えています。調整してください。</p>
+        }
+        else if (selectedTeamIdsCount > 0)
+        {
+            <p class="success-text">（トーナメント総枠数: @CalculateTotalSlots(selectedTeamIdsCount) 枠）</p>
+        }
+    </div>
+
+    @if (masterTeamsArray != null && masterTeamsArray.Length > 0)
+    {
+        <div class="area-groups">
+            @foreach (var areaGroup in masterTeamsArray.GroupBy(t => t.Area))
+            {
+                <div class="area-card">
+                    <h3>@areaGroup.Key 地区 (@areaGroup.Count() チーム)</h3>
+                    <div class="team-grid">
+                        @foreach (var team in areaGroup)
+                        {
+                            <label class="team-checkbox-label" @key="team.Id">
+                                <input type="checkbox" 
+                                       checked="@IsTeamSelected(team.Id)" 
+                                       @onchange="(e) => ToggleTeamSelection(team.Id, e.Value)" />
+                                <span class="team-name-span">@team.Name</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p>マスターデータを読み込み中...</p>
+    }
+
+    <div class="action-bar">
+        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(selectedTeamIdsCount < 2 || selectedTeamIdsCount > 99)">
+            このチーム数で確定して抽選会へ
+        </button>
+    </div>
+</div>

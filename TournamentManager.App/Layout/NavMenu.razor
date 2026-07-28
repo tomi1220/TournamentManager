@@ -1,0 +1,46 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">TournamentManager.App</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+        <!-- フェーズ2: チーム選定 -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="team-selection">
+                <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> 出場チーム選定
+            </NavLink>
+        </div>
+        <!-- フェーズ2: 抽選会（空のブラケット印刷と組み合わせ入力） -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="lottery-draw">
+                <span class="bi bi-diagram-3-fill-nav-menu" aria-hidden="true"></span> 抽選会・組合せ
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
