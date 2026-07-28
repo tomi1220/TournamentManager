@@ -6,78 +6,79 @@
 
 <PageTitle>ホーム - 大会管理</PageTitle>
 
-<h1>バスケ大会管理システム</h1>
+<div class="home-container" style="max-width: 900px; margin: 0 auto; padding: 20px;">
+    <h1 style="text-align: center; margin-bottom: 30px; font-weight: bold;">バスケ大会管理システム</h1>
 
-@if (isLoading)
-{
-    <p>データを読み込み中...</p>
-}
-else
-{
     <div style="display: flex; gap: 40px; margin-top: 20px;">
-        <!-- 左側：新規作成 -->
-        <div style="flex: 1; border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
-            <h3>① 新しい大会を作る</h3>
-            <div style="margin-top: 15px;">
-                <label>大会名：</label>
-                <input @bind="newTournamentName" placeholder="例：夏の市民大会" class="form-control" />
+
+        <!-- 🆕 左側：新規作成 -->
+        <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 8px;">① 新しい大会を作る</h3>
+            <div style="margin-top: 20px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 8px;">大会名</label>
+                <input @bind="newTournamentName" placeholder="例：2026年度 秋季市民大会" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
             </div>
-            <button @onclick="CreateAndStart" class="btn btn-primary" style="margin-top: 15px;" disabled="@string.IsNullOrWhiteSpace(newTournamentName)">
+            <button @onclick="CreateAndStart" class="btn btn-primary" style="margin-top: 20px; width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" disabled="@string.IsNullOrWhiteSpace(newTournamentName)">
                 作成してチーム登録へ
             </button>
         </div>
 
-        <!-- 右側：既存の選択 -->
-        <div style="flex: 1; border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
-            <h3>② 既存の大会を選ぶ</h3>
-            @if (!State.SavedTournaments.Any())
+        <!-- 📂 右側：既存の選択 -->
+        <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3 style="margin-top: 0; border-bottom: 2px solid #6c757d; padding-bottom: 8px;">② 既存の大会を選ぶ</h3>
+
+            <!-- 💡 ファイルから読み込まれた大会リストをそのままチェック -->
+            @if (State.SavedTournaments == null || !State.SavedTournaments.Any())
             {
-                <p style="color: gray; margin-top: 15px;">保存された大会はありません。</p>
+                <p style="color: gray; margin-top: 20px; text-align: center;">保存された大会データはありません。</p>
             }
             else
             {
-                <ul style="list-style: none; padding: 0; margin-top: 15px;">
+                <ul style="list-style: none; padding: 0; margin-top: 20px; max-height: 250px; overflow-y: auto;">
                     @foreach (var tournament in State.SavedTournaments)
                     {
-                        <li style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>@tournament.Name <small style="color: gray;">(@tournament.CreatedAt.ToString("yyyy/MM/dd"))</small></span>
-                            <button @onclick="() => SelectAndStart(tournament)" class="btn btn-secondary btn-sm">
-                                開開く
+                        <li style="margin-bottom: 12px; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: bold; color: #333;">@tournament.Name</span>
+                                <small style="color: gray; margin-top: 2px;">作成日: @tournament.CreatedAt.ToString("yyyy/MM/dd HH:mm")</small>
+                            </div>
+                            <button @onclick="() => SelectAndStart(tournament)" class="btn btn-secondary" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                                開く
                             </button>
                         </li>
                     }
                 </ul>
             }
         </div>
+
     </div>
-}
+</div>
 
 @code {
     private string newTournamentName = "";
-    private bool isLoading = true;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // 💡 画面表示時の初期化処理（Stateクラス内のコンストラクタで自動ロードされるため、ここでは何もしなくてOKです）
+    protected override void OnInitialized()
     {
-        if (firstRender)
-        {
-            // 画面起動時にローカルストレージからデータをロード
-            await State.LoadFromStorageAsync();
-            isLoading = false;
-            StateHasChanged(); // 再描画を要求
-        }
     }
 
-    private async Task CreateAndStart()
+    private void CreateAndStart()
     {
         if (string.IsNullOrWhiteSpace(newTournamentName)) return;
 
-        await State.CreateNewTournamentAsync(newTournamentName);
+        // 💡 C#の同期処理で新規作成＆即時ファイル保存
+        State.CreateNewTournament(newTournamentName);
+
+        // チーム選択画面へ遷移
         NavManager.NavigateTo("/team-selection");
     }
 
     private void SelectAndStart(TournamentInfo tournament)
     {
+        // 💡 選択した大会を現在のアクティブ大会としてセット
         State.CurrentTournament = tournament;
+
+        // チーム選択画面へ遷移
         NavManager.NavigateTo("/team-selection");
     }
 }

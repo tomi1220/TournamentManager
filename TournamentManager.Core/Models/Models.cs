@@ -11,7 +11,17 @@ namespace TournamentManager.Core.Models
         public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // 💡 選択されたチームIDのリスト
         public List<string> Teams { get; set; } = new();
+
+        // 💡 追加：枠番号（キー）と チームID（値）の紐づけ
+        // 男子用・女子用で分けて管理します
+        public Dictionary<int, string> MenSlotAssignments { get; set; } = new();
+        public Dictionary<int, string> WomenSlotAssignments { get; set; } = new();
+
+        // ※もし試合結果オブジェクト(MatchResults)もあれば、同様にここへ追加します
+        public int MyProperty { get; set; }
     }
 
     public class Team

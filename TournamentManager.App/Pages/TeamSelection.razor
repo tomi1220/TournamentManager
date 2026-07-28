@@ -2,63 +2,48 @@
 @using TournamentManager.Core.Models
 @using TournamentManager.Core.Services
 @using System.Linq
-using System.Text.Json
 
 @inject TournamentState State
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <div class="selection-container no-print">
-    <h2>@State.CurrentTournament?.Name のチーム選択</h2>
+    <!-- 💡 現在選択中の大会名を表示 -->
+    <h2>@(State.CurrentTournament?.Name ?? "大会未選択") のチーム選択</h2>
 
-    <div class="gender-selector">
-        <button @onclick='() => SwitchGender("Men")' class='@(State.CurrentGender == "Men" ? "active" : "")'>男子 登録管理</button>
-        <button @onclick='() => SwitchGender("Women")' class='@(State.CurrentGender == "Women" ? "active" : "")'>女子 登録管理</button>
+    <div class="gender-selector" style="margin-bottom: 20px;">
+        <button @onclick='() => SwitchGender("Men")' class='btn @(State.CurrentGender == "Men" ? "btn-primary" : "btn-outline-primary")' style="margin-right: 10px;">男子 登録管理</button>
+        <button @onclick='() => SwitchGender("Women")' class='btn @(State.CurrentGender == "Women" ? "btn-primary" : "btn-outline-primary")'>女子 登録管理</button>
     </div>
 
+    <!-- 💡 ファイル管理パネル（不要であれば削除してください。残す場合はStateのファイル保存ロジックと連携させます） -->
     <div class="file-io-panel" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd;">
-        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-            <button class="btn-export" @onclick="ExportToJsonAsync" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                📥 出場チームをJSONで保存
-            </button>
-            <div style="position: relative; overflow: hidden; display: inline-block;">
-                <button class="btn-import-trigger" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    📤 JSONファイルから復元
-                </button>
-                <InputFile OnChange="ImportFromJsonAsync" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;" />
-            </div>
-        </div>
-        @if (!string.IsNullOrEmpty(fileMessage))
-        {
-            <p style="margin-top: 8px; font-size: 12px; color: #333; font-weight: bold;">@fileMessage</p>
-        }
+        <p style="margin: 0; font-size: 14px; color: #666;">※大会ごとの選択状態は自動的にファイル（tournament_storage.json）に保存されています。</p>
     </div>
 
-    <div class="summary-box">
-        <!-- 💡 選択数は State から直接カウントを取得 -->
-        <p>現在の選択状況: <strong>@GetSelectedCount()</strong> チームが選択されています。</p>
+    <div class="summary-box" style="background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+        <p style="margin: 0;">現在の選択状況: <strong>@GetSelectedCount()</strong> チームが選択されています。</p>
         @if (GetSelectedCount() > 99)
         {
-            <p class="error-text">※最大99チームを超えています。調整してください。</p>
+            <p class="error-text" style="color: red; margin: 5px 0 0 0; font-weight: bold;">※最大99チームを超えています。調整してください。</p>
         }
         else if (GetSelectedCount() > 0)
         {
-            <p class="success-text">（トーナメント総枠数: @CalculateTotalSlots(GetSelectedCount()) 枠）</p>
+            <p class="success-text" style="color: green; margin: 5px 0 0 0; font-weight: bold;">（トーナメント総枠数: @CalculateTotalSlots(GetSelectedCount()) 枠）</p>
         }
     </div>
 
+    <!-- 💡 マスターデータの表示ループ -->
     @if (masterTeamsArray != null && masterTeamsArray.Length > 0)
     {
         <div class="area-groups">
             @foreach (var areaGroup in masterTeamsArray.GroupBy(t => t.Area))
             {
-                <div class="area-card">
-                    <h3>@areaGroup.Key 地区 (@areaGroup.Count() チーム)</h3>
-                    <div class="team-grid">
+                <div class="area-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff;">
+                    <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px;">@areaGroup.Key 地区 (@areaGroup.Count() チーム)</h3>
+                    <div class="team-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
                         @foreach (var team in areaGroup)
                         {
-                            <label class="team-checkbox-label" @key="team.Id">
-                                <!-- 💡 チェック状態と変更イベントを State 連動に修正 -->
+                            <label class="team-checkbox-label" @key="team.Id" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 4px; background: #f8f9fa;">
                                 <input type="checkbox"
                                        checked="@IsTeamSelected(team.Id)"
                                        @onchange="(e) => ToggleTeamSelection(team.Id, e.Value)" />
@@ -75,77 +60,12 @@ using System.Text.Json
         <p>マスターデータを読み込み中...</p>
     }
 
-    <div class="action-bar">
-        <!-- 💡 ボタンの非活性化条件も State のカウントを参照 -->
-        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(GetSelectedCount() < 2 || GetSelectedCount() > 99)">
+    <div class="action-bar" style="margin-top: 20px; text-align: right;">
+        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(GetSelectedCount() < 2 || GetSelectedCount() > 99)" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
             このチーム数で確定して抽選会へ
         </button>
     </div>
 </div>
 
-@code
-{
-    private const string StorageKey = "SavedTournamentsData";
-
-    // データをローカルストレージから読み込む
-    public async Task LoadFromStorageAsync()
-    {
-        try
-        {
-            var json = await JS.InvokeAsync<string>("localStorage.getItem", StorageKey);
-            if (!string.IsNullOrEmpty(json))
-            {
-                State.SavedTournaments = JsonSerializer.Deserialize<List<TournamentInfo>>(json) ?? new();
-            }
-        }
-        catch
-        {
-            // 初回アクセス時やエラー時は空のリスト
-            State.SavedTournaments = new();
-        }
-    }
-
-    // データをローカルストレージに保存する
-    public async Task SaveToStorageAsync()
-    {
-        var json = JsonSerializer.Serialize(SavedTournaments);
-        await _js.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
-    }
-
-/*
-    <!-- 例: 保存された状態からデータをバインドする -->
-    @foreach (var team in AllTeams)
-    {
-        <div>
-            <input type="checkbox"
-                   checked="@State.SelectedTeams.Contains(team)"
-                   @onchange="(e) => ToggleTeam(team, e.Value)" />
-            @team
-        </div>
-    }
-
-    <button @onclick="GoToLottery">抽選画面へ移動</button>
-
-    @code {
-        private List<string> AllTeams = new() { "チームA", "チームB", "チームC", "チームD" };
-
-        private void ToggleTeam(string team, object? isChecked)
-        {
-            if (isChecked is true && !State.SelectedTeams.Contains(team))
-            {
-                State.SelectedTeams.Add(team);
-            }
-            else if (isChecked is false)
-            {
-                State.SelectedTeams.Remove(team);
-            }
-        }
-
-        private void GoToLottery()
-        {
-            NavManager.NavigateTo("/lottery-draw");
-        }
-    }
-     *
- */
+@code {
 }

@@ -1,56 +1,87 @@
-﻿using System.Text.Json;
-//using Microsoft.JSInterop;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using TournamentManager.Core.Models;
 
 namespace TournamentManager.Core.Services
 {
     public class TournamentState
     {
-        //private readonly IJSRuntime _js;
+        // 💾 保存先ファイルのパス（アプリの実行フォルダ直下に保存されます）
+        private readonly string _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tournament_storage.json");
 
-        // 現在アクティブ（選択中・編集中）の大会情報
-        //public List<TournamentInfo> SavedTournaments { get; set; } = new();
+        // 現在操作中（アクティブ）の大会情報
         public TournamentInfo? CurrentTournament { get; set; }
 
-        // 保存されている過去の大会リスト（簡易的なモックデータ）
-        public List<TournamentInfo> SavedTournaments { get; set; } = new()
+        // 大会一覧リスト
+        public List<TournamentInfo> SavedTournaments { get; set; } = new();
+
+        // 現在選択されている性別タブの状態管理（画面遷移で消えないようにここに保持）
+        public string CurrentGender { get; set; } = "Men";
+
+        public TournamentState()
         {
-            new TournamentInfo { Name = "2026年 春季地区大会", Teams = new() { "チームA", "チームB", "チームC" } },
-            new TournamentInfo { Name = "第5回 社内バスケ杯", Teams = new() { "シャークス", "レイカーズ" } }
-        };
+            // アプリ起動時に自動でファイルを読み込む
+            LoadFromFile();
+        }
 
-        //// コンストラクタでIJSRuntimeを注入
-        //public TournamentState(IJSRuntime js)
-        //{
-        //    _js = js;
-        //}
+        // 📂 ファイルからデータを読み込む
+        public void LoadFromFile()
+        {
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    string json = File.ReadAllText(_filePath);
+                    SavedTournaments = JsonSerializer.Deserialize<List<TournamentInfo>>(json) ?? new();
+                }
+            }
+            catch (Exception ex)
+            {
+                // エラー時はログ代わりにコンソールへ出力し、空のリストで初期化
+                Console.WriteLine($"ファイルの読み込みに失敗しました: {ex.Message}");
+                SavedTournaments = new();
+            }
+        }
 
-        // 新規大会を作成してアクティブにするメソッド
-        public async Task CreateNewTournamentAsync(string name)
+        // 💾 ファイルへデータを上書き保存する
+        public void SaveToFile()
+        {
+            try
+            {
+                // インデントを揃えて見やすくJSON化
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(SavedTournaments, options);
+
+                File.WriteAllText(_filePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ファイルの保存に失敗しました: {ex.Message}");
+            }
+        }
+
+        // 🆕 新しい大会を作成して保存する
+        public void CreateNewTournament(string name)
         {
             var newTournament = new TournamentInfo { Name = name };
             SavedTournaments.Add(newTournament);
             CurrentTournament = newTournament;
-            await SaveToStorageAsync(); // 追加したら即保存
+
+            SaveToFile(); // 追加したら即ファイルに保存
         }
 
-        // 男子・女子の確定エントリーデータを安全にメモリ保持する
-        public TournamentEntry MenEntry { get; } = new TournamentEntry { Gender = "Men" };
-        public TournamentEntry WomenEntry { get; } = new TournamentEntry { Gender = "Women" };
-
-        // 現在選択されている性別 ("Men" または "Women")
-        public string CurrentGender { get; set; } = "Men";
-
-        // アクティブなエントリーデータを取得するヘルパー
-        public TournamentEntry GetActiveEntry()
+        public Dictionary<int, string> GetCurrentSlotAssignments()
         {
-            return CurrentGender == "Men" ? MenEntry : WomenEntry;
+            if (CurrentTournament == null) return new();
+            return CurrentGender == "Men" ? CurrentTournament.MenSlotAssignments : CurrentTournament.WomenSlotAssignments;
         }
 
-        // 最後に選択されていたチームのリストを保持する
-        public List<string> SelectedTeams { get; set; } = new();
-
-        // 例: その他、残したい画面の状態（テキストボックスに入力中だった文字など）
-        public string CurrentSearchQuery { get; set; } = "";
+        public List<MatchResult> GetCurrentMatchResults()
+        {
+            if (CurrentTournament == null) return new();
+            return CurrentGender == "Men" ? CurrentTournament.MenMatchResults : CurrentTournament.WomenMatchResults;
+        }
     }
 }
