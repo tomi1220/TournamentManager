@@ -19,16 +19,6 @@ namespace TournamentManager.App.Pages
 
         protected override void OnInitialized()
         {
-            // テスト用のダミーマスターデータ（本物の読み込みロジックがあればそちらに差し替えてください）
-            masterTeamsArray = new TeamMaster[]
-            {
-                new TeamMaster { Id = "1", Name = "シャークス", AreaName = "北部" },
-                new TeamMaster { Id = "2", Name = "レイカーズ", AreaName = "北部" },
-                new TeamMaster { Id = "3", Name = "ブルズ", AreaName = "南部" },
-                new TeamMaster { Id = "4", Name = "ウォリアーズ", AreaName = "南部" },
-                new TeamMaster { Id = "5", Name = "セルティックス", AreaName = "東部" },
-                new TeamMaster { Id = "6", Name = "ネッツ", AreaName = "西部" }
-            };
         }
 
         private void SwitchGender(string gender)
@@ -43,7 +33,7 @@ namespace TournamentManager.App.Pages
         {
             if (State.CurrentTournament == null) return false;
 
-            // 選択されたIDを文字列として保持していると仮定
+            // 大会オブジェクト内の Teams リストにこのマスタIDが含まれているかで判定
             return State.CurrentTournament.Teams.Contains(teamId);
         }
 
@@ -52,27 +42,30 @@ namespace TournamentManager.App.Pages
         {
             if (State.CurrentTournament == null) return;
 
-            var idStr = teamId;
             if (isChecked is true)
             {
-                if (!State.CurrentTournament.Teams.Contains(idStr))
+                if (!State.CurrentTournament.Teams.Contains(teamId))
                 {
-                    State.CurrentTournament.Teams.Add(idStr);
+                    State.CurrentTournament.Teams.Add(teamId);
                 }
             }
             else
             {
-                State.CurrentTournament.Teams.Remove(idStr);
+                State.CurrentTournament.Teams.Remove(teamId);
             }
 
-            // 💡 変更を即座に「tournament_storage.json」に上書き保存！
+            // 💡 変更を即座に「tournament_storage.json」に自動セーブ
             State.SaveToFile();
         }
 
         // 💡 現在選択されているチーム数をカウント
         private int GetSelectedCount()
         {
-            return State.CurrentTournament?.Teams?.Count ?? 0;
+            if (State.CurrentTournament == null) return 0;
+
+            // 大会に登録された全IDのうち、現在選択されている性別に一致するマスタチームのみをカウント
+            return State.CurrentTournament.Teams
+                .Count(id => State.MasterSettings.Teams.Any(t => t.Id == id && t.Gender == State.CurrentGender));
         }
 
         // 💡 トーナメントの枠数計算
@@ -86,7 +79,7 @@ namespace TournamentManager.App.Pages
 
         private void ConfirmEntries()
         {
-            // 💡 次の画面へ遷移（データはStateに保存され、ファイルにも書き込み済みなので安全です）
+            // 💡 確定して次の抽選画面へ（データは永続化されているので安全に遷移可能）
             Navigation.NavigateTo("/lottery-draw");
         }
 

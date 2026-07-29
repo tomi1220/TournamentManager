@@ -6,48 +6,66 @@
 @inject TournamentState State
 @inject NavigationManager Navigation
 
-<div class="selection-container no-print">
+<div class="selection-container no-print" style="max-width: 1000px; margin: 0 auto; padding: 20px;">
     <!-- 💡 現在選択中の大会名を表示 -->
-    <h2>@(State.CurrentTournament?.Name ?? "大会未選択") のチーム選択</h2>
+    <h2 style="font-weight: bold; margin-bottom: 25px;">🏆 @(State.CurrentTournament?.Name ?? "大会未選択") のチーム選択</h2>
 
-    <div class="gender-selector" style="margin-bottom: 20px;">
-        <button @onclick='() => SwitchGender("Men")' class='btn @(State.CurrentGender == "Men" ? "btn-primary" : "btn-outline-primary")' style="margin-right: 10px;">男子 登録管理</button>
-        <button @onclick='() => SwitchGender("Women")' class='btn @(State.CurrentGender == "Women" ? "btn-primary" : "btn-outline-primary")'>女子 登録管理</button>
+    <!-- 💡 性別タブ切り替え -->
+    <div class="gender-selector" style="margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+        <button @onclick='() => SwitchGender("Men")' class='btn @(State.CurrentGender == "Men" ? "btn-primary" : "btn-outline-primary")' style="margin-right: 15px; padding: 10px 20px; font-weight: bold;">
+            🙋‍♂️ 男子 登録管理
+        </button>
+        <button @onclick='() => SwitchGender("Women")' class='btn @(State.CurrentGender == "Women" ? "btn-primary" : "btn-outline-primary")' style="padding: 10px 20px; font-weight: bold;">
+            👩‍🦰 女子 登録管理
+        </button>
     </div>
 
-    <!-- 💡 ファイル管理パネル（不要であれば削除してください。残す場合はStateのファイル保存ロジックと連携させます） -->
-    <div class="file-io-panel" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd;">
-        <p style="margin: 0; font-size: 14px; color: #666;">※大会ごとの選択状態は自動的にファイル（tournament_storage.json）に保存されています。</p>
+    <!-- 自動保存のアナウンス -->
+    <div class="file-io-panel" style="margin: 15px 0; padding: 12px; background: #e9ecef; border-radius: 6px; border-left: 4px solid #6c757d;">
+        <p style="margin: 0; font-size: 14px; color: #495057; font-weight: bold;">⚙️ 選択状況はリアルタイムで自動保存されています（tournament_storage.json）</p>
     </div>
 
-    <div class="summary-box" style="background: #e9ecef; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-        <p style="margin: 0;">現在の選択状況: <strong>@GetSelectedCount()</strong> チームが選択されています。</p>
+    <!-- 💡 選択数の集計（現在選択されている性別のチームのみをカウント） -->
+    <div class="summary-box" style="background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <p style="margin: 0; font-size: 16px;">現在のエントリー状況: <strong style="font-size: 20px; color: #007bff;">@GetSelectedCount()</strong> チームが選択されています。</p>
         @if (GetSelectedCount() > 99)
         {
-            <p class="error-text" style="color: red; margin: 5px 0 0 0; font-weight: bold;">※最大99チームを超えています。調整してください。</p>
+            <p class="error-text" style="color: #dc3545; margin: 8px 0 0 0; font-weight: bold;">※最大99チームを超えています。調整してください。</p>
         }
         else if (GetSelectedCount() > 0)
         {
-            <p class="success-text" style="color: green; margin: 5px 0 0 0; font-weight: bold;">（トーナメント総枠数: @CalculateTotalSlots(GetSelectedCount()) 枠）</p>
+            <p class="success-text" style="color: #28a745; margin: 8px 0 0 0; font-weight: bold;">📊 トーナメント総枠数: @CalculateTotalSlots(GetSelectedCount()) 枠（シード・バイ含む）</p>
         }
     </div>
 
-    <!-- 💡 マスターデータの表示ループ -->
-    @if (masterTeamsArray != null && masterTeamsArray.Length > 0)
+    <!-- 💡 マスタデータの表示ループ（現在選ばれている性別のチームのみを地区ごとにグループ化） -->
+    @{
+        var filteredMasterTeams = State.MasterSettings.Teams
+        .Where(t => t.Gender == State.CurrentGender)
+        .ToList();
+    }
+
+    @if (filteredMasterTeams.Any())
     {
         <div class="area-groups">
-            @foreach (var areaGroup in masterTeamsArray.GroupBy(t => t.AreaName))
+            @foreach (var areaGroup in filteredMasterTeams.GroupBy(t => t.AreaName))
             {
-                <div class="area-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff;">
-                    <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px;">@areaGroup.Key 地区 (@areaGroup.Count() チーム)</h3>
-                    <div class="team-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+                <div class="area-card" style="border: 1px solid #e1e4e6; padding: 20px; border-radius: 8px; margin-bottom: 20px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <h3 style="margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f3f5; padding-bottom: 8px; color: #333;">
+                        📍 @(string.IsNullOrWhiteSpace(areaGroup.Key) ? "地区未設定" : areaGroup.Key) 地区 (@areaGroup.Count() チーム登録あり)
+                    </h3>
+                    <div class="team-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 15px;">
                         @foreach (var team in areaGroup)
                         {
-                            <label class="team-checkbox-label" @key="team.Id" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 4px; background: #f8f9fa;">
+                            <label class="team-checkbox-label" @key="team.Id" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; border-radius: 6px; background: #f8f9fa; border: 1px solid #f1f3f5; transition: background 0.2s;">
                                 <input type="checkbox"
                                        checked="@IsTeamSelected(team.Id)"
-                                       @onchange="(e) => ToggleTeamSelection(team.Id, e.Value)" />
-                                <span class="team-name-span">@team.Name</span>
+                                       @onchange="(e) => ToggleTeamSelection(team.Id, e.Value)"
+                                       style="width: 18px; height: 18px; cursor: pointer;" />
+                                <div style="display: flex; flex-direction: column;">
+                                    <span class="team-name-span" style="font-weight: bold; color: #333;">@team.Name</span>
+                                    <small style="color: #6c757d; margin-top: 2px;">略称: @team.ShortName</small>
+                                </div>
                             </label>
                         }
                     </div>
@@ -57,12 +75,24 @@
     }
     else
     {
-        <p>マスターデータを読み込み中...</p>
+        <div style="text-align: center; padding: 40px; border: 2px dashed #ccc; border-radius: 8px; background: #f8f9fa; margin-bottom: 25px;">
+            <p style="color: #6c757d; margin: 0; font-weight: bold;">
+                @(State.CurrentGender == "Men" ? "🙋‍♂️ 男子" : "👩‍🦰 女子") のチームマスタがまだ登録されていません。
+            </p>
+            <button @onclick='() => Navigation.NavigateTo(State.CurrentGender == "Men" ? "/settings/teams/men" : "/settings/teams/women")' class="btn btn-sm btn-primary" style="margin-top: 15px; font-weight: bold; cursor: pointer;">
+                マスタ管理画面へチームを登録しに行く
+            </button>
+        </div>
     }
 
-    <div class="action-bar" style="margin-top: 20px; text-align: right;">
-        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(GetSelectedCount() < 2 || GetSelectedCount() > 99)" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-            このチーム数で確定して抽選会へ
+    <!-- 下部アクションバー -->
+    <div class="action-bar" style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px;">
+        <button class="btn btn-secondary" @onclick='() => Navigation.NavigateTo("/")' style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            ← ホームに戻る
+        </button>
+
+        <button class="btn-confirm" @onclick="ConfirmEntries" disabled="@(GetSelectedCount() < 2 || GetSelectedCount() > 99)" style="padding: 12px 25px; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            このチーム数で確定して抽選会へ ➔
         </button>
     </div>
 </div>

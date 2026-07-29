@@ -1,0 +1,41 @@
+@page "/master-edit"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h3>マスター編集</h3>
+
+@if (master == null)
+{
+    <p>読み込み中...</p>
+}
+else
+{
+    <div>
+        <label>大会名：</label>
+        <InputText @bind-Value="master.Title" />
+    </div>
+
+    <div>
+        <label>最大チーム数：</label>
+        <InputNumber @bind-Value="master.MaxTeam" />
+    </div>
+
+    <button @onclick="SaveMaster">保存</button>
+}
+
+@code {
+    private MasterData master;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var json = await Http.GetStringAsync("master/master.json");
+        master = System.Text.Json.JsonSerializer.Deserialize<MasterData>(json);
+    }
+
+    private async Task SaveMaster()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(master);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        await JS.InvokeVoidAsync("saveAsFile", "master.json", bytes);
+    }
+}

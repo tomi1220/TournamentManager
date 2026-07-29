@@ -1,13 +1,13 @@
 ﻿@page "/"
 @using TournamentManager.Core.Services
 @using TournamentManager.Core.Models
+@using System.Linq
 @inject TournamentState State
 @inject NavigationManager NavManager
 
 <PageTitle>ホーム - 大会管理</PageTitle>
 
 <div class="home-container" style="max-width: 900px; margin: 0 auto; padding: 20px;">
-    <!-- 右上に設定画面へのショートカットボタン -->
     <div style="text-align: right; margin-bottom: 10px;">
         <button @onclick='() => NavManager.NavigateTo("/settings")' class="btn btn-outline-secondary" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">
             ⚙️ マスター・システム設定
@@ -18,53 +18,67 @@
 
     <div style="display: flex; gap: 40px; margin-top: 20px;">
 
-        <!-- 🆕 左側：新規作成（年度・回数・省略の3モード対応版） -->
+        <!-- 🆕 左側：新規作成（マスタ選択＆スポット直接手入力 両対応版） -->
         <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <h3 style="margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 8px;">① 新しい大会を作る</h3>
-
-            <!-- 冠文字のタイプ選択（3パターン） -->
-            <div style="margin-top: 15px; display: flex; gap: 12px; font-size: 14px; font-weight: bold;">
+            
+            <!-- 作成モードの切り替え -->
+            <div style="margin-top: 15px; display: flex; gap: 15px; font-size: 14px; font-weight: bold; background: #f8f9fa; padding: 8px; border-radius: 4px;">
                 <label style="cursor: pointer;">
-                    <input type="radio" name="nameType" checked="@(nameType == "year")" @onclick='() => ChangeType("year")' /> 年度
+                    <input type="radio" name="modeType" checked="@(isMasterMode)" @onclick="() => SetMode(true)" /> マスタから選ぶ
                 </label>
-                <label style="cursor: pointer;">
-                    <input type="radio" name="nameType" checked="@(nameType == "count")" @onclick='() => ChangeType("count")' /> 回数
-                </label>
-                <!-- 💡 省略モードを追加 -->
-                <label style="cursor: pointer; color: #6c757d;">
-                    <input type="radio" name="nameType" checked="@(nameType == "none")" @onclick='() => ChangeType("none")' /> なし(省略)
+                <label style="cursor: pointer; color: #ff8800;">
+                    <input type="radio" name="modeType" checked="@(!isMasterMode)" @onclick="() => SetMode(false)" /> ✍️ スポット直接手入力
                 </label>
             </div>
 
-            <div style="margin-top: 15px; min-height: 70px;">
-                @if (nameType == "year")
-                {
-                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">開催年度</label>
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                        <input type="number" @bind="inputYear" @bind:event="oninput" @onchange="UpdateTournamentName" style="width: 100px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
-                        <span style="font-weight: bold;">年度</span>
-                    </div>
-                }
-                else if (nameType == "count")
-                {
-                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">開催回数</label>
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                        <span style="font-weight: bold;">第</span>
-                        <input type="number" @bind="inputCount" @bind:event="oninput" @onchange="UpdateTournamentName" style="width: 100px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
-                        <span style="font-weight: bold;">回</span>
-                    </div>
-                }
-                else
-                {
-                    <!-- 省略モードのときは入力欄を表示せず、案内だけを出す -->
-                    <p style="color: gray; font-size: 13px; margin-top: 25px;">※マスターの基本名称をそのまま使用します。</p>
-                }
-            </div>
+            <!-- 1️⃣ マスタ選択モードの場合の追加設定（年度・回数・省略） -->
+            @if (isMasterMode)
+            {
+                <div style="margin-top: 15px; display: flex; gap: 12px; font-size: 13px; font-weight: bold;">
+                    <label style="cursor: pointer;"><input type="radio" name="nameType" checked="@(nameType == "year")" @onclick='() => ChangeType("year")' /> 年度</label>
+                    <label style="cursor: pointer;"><input type="radio" name="nameType" checked="@(nameType == "count")" @onclick='() => ChangeType("count")' /> 回数</label>
+                    <label style="cursor: pointer; color: #6c757d;"><input type="radio" name="nameType" checked="@(nameType == "none")" @onclick='() => ChangeType("none")' /> なし(省略)</label>
+                </div>
 
-            <!-- 最終確認用の大会名称入力欄 -->
+                <div style="margin-top: 15px; min-height: 60px;">
+                    @if (nameType == "year")
+                    {
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="number" @bind="inputYear" @bind:event="oninput" @onchange="UpdateTournamentName" style="width: 90px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            <span>年度</span>
+                        </div>
+                    }
+                    else if (nameType == "count")
+                    {
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span>第</span>
+                            <input type="number" @bind="inputCount" @bind:event="oninput" @onchange="UpdateTournamentName" style="width: 90px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            <span>回</span>
+                        </div>
+                    }
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px;">大会基本名を選択</label>
+                    <select @bind="SelectedBaseNameId" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- 大会名を選択してください --</option>
+                        @foreach (var baseName in State.MasterSettings.TournamentNames)
+                        {
+                            <option value="@baseName.Id">@baseName.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <p style="color: gray; font-size: 12px; margin-top: 15px;">※スポット開催（記念大会等）用のフリー入力モードです。</p>
+            }
+
+            <!-- 最終確認・手入力ボックス -->
             <div style="margin-top: 20px;">
-                <label style="font-weight: bold; display: block; margin-bottom: 8px;">作成される大会名称</label>
-                <input @bind="fullTournamentName" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; color: #007bff;" />
+                <label style="font-weight: bold; display: block; margin-bottom: 8px;">確定する大会名称</label>
+                <input @bind="fullTournamentName" placeholder="大会名称を入力してください" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; color: #007bff;" readonly="@isMasterMode" />
             </div>
 
             <button @onclick="CreateAndStart" class="btn btn-primary" style="margin-top: 20px; width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;" disabled="@string.IsNullOrWhiteSpace(fullTournamentName)">
@@ -75,14 +89,14 @@
         <!-- 右側：既存の選択 -->
         <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <h3 style="margin-top: 0; border-bottom: 2px solid #6c757d; padding-bottom: 8px;">② 既存の大会を選ぶ</h3>
-
+            
             @if (State.SavedTournaments == null || !State.SavedTournaments.Any())
             {
                 <p style="color: gray; margin-top: 20px; text-align: center;">保存された大会データはありません。</p>
             }
             else
             {
-                <ul style="list-style: none; padding: 0; margin-top: 20px; max-height: 280px; overflow-y: auto;">
+                <ul style="list-style: none; padding: 0; margin-top: 20px; max-height: 320px; overflow-y: auto;">
                     @foreach (var tournament in State.SavedTournaments)
                     {
                         <li style="margin-bottom: 12px; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
@@ -90,9 +104,7 @@
                                 <span style="font-weight: bold; color: #333;">@tournament.Name</span>
                                 <small style="color: gray; margin-top: 2px;">作成日: @tournament.CreatedAt.ToString("yyyy/MM/dd HH:mm")</small>
                             </div>
-                            <button @onclick="() => SelectAndStart(tournament)" class="btn btn-secondary" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                                開く
-                            </button>
+                            <button @onclick="() => SelectAndStart(tournament)" class="btn btn-secondary" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">開く</button>
                         </li>
                     }
                 </ul>
@@ -103,14 +115,47 @@
 </div>
 
 @code {
-    private string nameType = "year"; // "year", "count", "none"
+    private bool isMasterMode = true; // 💡 マスタかスポット（直接入力）かのフラグ
+    private string nameType = "year";
     private int inputYear = DateTime.Now.Year;
     private int inputCount = 1;
     private string fullTournamentName = "";
+    private string _selectedBaseNameId = "";
+    private string SelectedBaseNameId
+    {
+        get => _selectedBaseNameId;
+        set
+        {
+            if (_selectedBaseNameId != value)
+            {
+                _selectedBaseNameId = value;
+                UpdateTournamentName(); // 💡 値が変わった瞬間に自動生成を呼び出す
+            }
+        }
+    }
 
     protected override void OnInitialized()
     {
+        // 初回起動時にマスタの最初の項目があれば選択状態にする
+        var firstMaster = State.MasterSettings.TournamentNames.FirstOrDefault();
+        if (firstMaster != null)
+        {
+            SelectedBaseNameId = firstMaster.Id;
+        }
         UpdateTournamentName();
+    }
+
+    private void SetMode(bool masterMode)
+    {
+        isMasterMode = masterMode;
+        if (!isMasterMode)
+        {
+            fullTournamentName = ""; // スポット時は空にして自由に入力させる
+        }
+        else
+        {
+            UpdateTournamentName();
+        }
     }
 
     private void ChangeType(string type)
@@ -119,11 +164,19 @@
         UpdateTournamentName();
     }
 
-    // 💡 3つのモードに応じて文字結合を切り替える
     private void UpdateTournamentName()
     {
-        var baseName = State.MasterSettings.BaseTournamentName;
+        if (!isMasterMode) return;
 
+        var masterItem = State.MasterSettings.TournamentNames.FirstOrDefault(n => n.Id == SelectedBaseNameId);
+        var baseName = masterItem?.Name ?? "";
+
+        if (string.IsNullOrEmpty(baseName))
+        {
+            fullTournamentName = "";
+            return;
+        }
+        
         if (nameType == "year")
         {
             fullTournamentName = $"{inputYear}年度 {baseName}";
@@ -134,7 +187,6 @@
         }
         else
         {
-            // 💡 「なし」が選ばれたら、冠文字をつけずにマスター名のみにする
             fullTournamentName = baseName;
         }
     }
@@ -142,7 +194,6 @@
     private void CreateAndStart()
     {
         if (string.IsNullOrWhiteSpace(fullTournamentName)) return;
-
         State.CreateNewTournament(fullTournamentName);
         NavManager.NavigateTo("/team-selection");
     }

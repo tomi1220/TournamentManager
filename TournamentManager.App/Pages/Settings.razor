@@ -6,54 +6,35 @@
 
 <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
     <h2>⚙️ システム設定・マスタ管理</h2>
-    <p style="color: gray;">大会の基本名称、共通の地区マスタを設定します。</p>
 
-    <!-- タブ切り替えメニュー -->
     <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
         <button class='btn @(activeTab == "base" ? "btn-primary" : "btn-light")' @onclick='() => activeTab = "base"' style="margin-right: 10px;">1) 大会基本名称マスタ</button>
         <button class='btn @(activeTab == "area" ? "btn-primary" : "btn-light")' @onclick='() => activeTab = "area"' style="margin-right: 10px;">2) 地区マスタ</button>
     </div>
 
-    <!-- 1) 大会基本名称の設定 -->
+    <!-- 1) 大会基本名称の管理（複数対応版） -->
     @if (activeTab == "base")
     {
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4>大会基本名称の管理</h4>
-            <p style="color: gray; font-size: 14px;">※毎年使い回せる、年度や回数を抜いた固定の名称を入力してください。</p>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <input @bind="State.MasterSettings.BaseTournamentName" class="form-control" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" />
-                <button class="btn btn-success" @onclick="SaveAll" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">設定を保存</button>
-            </div>
-            <div style="margin-top: 20px; color: #555; font-size: 14px; background: #e9ecef; padding: 10px; border-radius: 4px;">
-                <strong>新規大会作成時の自動入力例：</strong> <br />
-                <span style="color: #007bff; font-weight: bold;">@(DateTime.Now.Year)年度 @State.MasterSettings.BaseTournamentName</span>
-            </div>
-        </div>
-    }
-
-    <!-- 2) 地区マスタの管理 -->
-    @if (activeTab == "area")
-    {
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <h4>地区の登録・削除</h4>
-            <p style="color: gray; font-size: 14px;">※登録した地区は、男子・女子両方のチーム登録時に選択できるようになります。</p>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 6px;">
+            <h4>大会基本名称の登録・削除</h4>
+            <p style="color: gray; font-size: 14px;">※定期的に開催する大会のベース名（年度や回数を除いたもの）を登録してください。</p>
             <div style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 20px;">
-                <input @bind="newAreaName" placeholder="新しい地区名（例：東部地区）" class="form-control" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" />
-                <button class="btn btn-primary" @onclick="AddArea" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">地区を追加</button>
+                <input @bind="newBaseName" placeholder="新しい大会基本名（例：市民バスケットボール選手権）" class="form-control" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
+                <button class="btn btn-primary" @onclick="AddBaseName" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">追加</button>
             </div>
 
-            <ul class="list-group" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;">
-                @if (!State.MasterSettings.Areas.Any())
+            <ul style="list-style: none; padding: 0;">
+                @if (!State.MasterSettings.TournamentNames.Any())
                 {
-                    <li style="color: gray; text-align: center; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 4px;">登録されている地区はありません。</li>
+                    <li style="color: gray; text-align: center; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 4px;">登録されている大会名称はありません。</li>
                 }
                 else
                 {
-                    @foreach (var area in State.MasterSettings.Areas)
+                    @foreach (var baseName in State.MasterSettings.TournamentNames)
                     {
-                        <li class="list-group-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 4px;">
-                            <span style="font-weight: bold; color: #333;">@area.Name</span>
-                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveArea(area)" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">削除</button>
+                        <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 4px;">
+                            <span style="font-weight: bold; color: #333;">@baseName.Name</span>
+                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveBaseName(baseName)" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">削除</button>
                         </li>
                     }
                 }
@@ -61,39 +42,70 @@
         </div>
     }
 
-    <!-- 💡 チームマスタ画面へのクイックナビゲーションを配置 -->
+    <!-- 2) 地区マスタの管理 -->
+    @if (activeTab == "area")
+    {
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 6px;">
+            <h4>地区の登録・削除</h4>
+            <div style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 20px;">
+                <input @bind="newAreaName" placeholder="新しい地区名" class="form-control" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
+                <button class="btn btn-primary" @onclick="AddArea" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">地区を追加</button>
+            </div>
+            <ul style="list-style: none; padding: 0;">
+                @foreach (var area in State.MasterSettings.Areas)
+                {
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 4px;">
+                        <span style="font-weight: bold; color: #333;">@area.Name</span>
+                        <button class="btn btn-danger btn-sm" @onclick="() => RemoveArea(area)" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">削除</button>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- チームマスタへのリンク -->
     <div style="margin-top: 30px; padding: 20px; border: 1px dashed #ccc; border-radius: 6px; background: #fff;">
         <h4 style="margin-top: 0; color: #333;">🏃‍♂️ チームマスタの編集はこちら</h4>
-        <p style="color: gray; font-size: 14px;">チームの所属・略称管理は、入力ミス防止のため男女別の専用画面に分かれています。</p>
         <div style="display: flex; gap: 15px; margin-top: 15px;">
-            <button @onclick='() => Nav.NavigateTo("/settings/teams/men")' style="flex: 1; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                🙋‍♂️ 男子チーム マスタ管理を開く
-            </button>
-            <button @onclick='() => Nav.NavigateTo("/settings/teams/women")' style="flex: 1; padding: 12px; background: #e066ff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                👩‍🦰 女子チーム マスタ管理を開く
-            </button>
+            <button @onclick='() => Nav.NavigateTo("/settings/teams/men")' style="flex: 1; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🙋‍♂️ 男子チーム マスタ管理</button>
+            <button @onclick='() => Nav.NavigateTo("/settings/teams/women")' style="flex: 1; padding: 12px; background: #e066ff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">👩‍🦰 女子チーム マスタ管理</button>
         </div>
     </div>
 
-    <div style="margin-top: 30px; text-align: left;">
+    <div style="margin-top: 30px;">
         <button class="btn btn-secondary" @onclick='() => Nav.NavigateTo("/")' style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">← ホームに戻る</button>
     </div>
 </div>
 
 @code {
     private string activeTab = "base";
+    private string newBaseName = "";
     private string newAreaName = "";
+
+    private void AddBaseName()
+    {
+        if (string.IsNullOrWhiteSpace(newBaseName)) return;
+        if (!State.MasterSettings.TournamentNames.Any(n => n.Name == newBaseName.Trim()))
+        {
+            State.MasterSettings.TournamentNames.Add(new TournamentNameMaster { Name = newBaseName.Trim() });
+        }
+        newBaseName = "";
+        SaveAll();
+    }
+
+    private void RemoveBaseName(TournamentNameMaster baseName)
+    {
+        State.MasterSettings.TournamentNames.Remove(baseName);
+        SaveAll();
+    }
 
     private void AddArea()
     {
         if (string.IsNullOrWhiteSpace(newAreaName)) return;
-
-        // 重複チェック
         if (!State.MasterSettings.Areas.Any(a => a.Name == newAreaName.Trim()))
         {
             State.MasterSettings.Areas.Add(new AreaMaster { Name = newAreaName.Trim() });
         }
-
         newAreaName = "";
         SaveAll();
     }
@@ -106,7 +118,6 @@
 
     private void SaveAll()
     {
-        // 💡 共通設定・地区マスタの変更をJSONファイルに上書き保存
         State.SaveToFile();
         StateHasChanged();
     }

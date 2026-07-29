@@ -24,6 +24,13 @@ namespace TournamentManager.Core.Models
         public List<MatchResult> WomenMatchResults { get; set; } = new();
     }
 
+    // 大会基本名称マスタ
+    public class TournamentNameMaster
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public string Name { get; set; } = string.Empty;
+    }
+
     // 地区マスタ
     public class AreaMaster
     {
@@ -48,8 +55,7 @@ namespace TournamentManager.Core.Models
     // アプリ全体の設定やマスタをまとめるコンテナ
     public class AppMasterSettings
     {
-        // 1) 大会基本名称（例：「市民バスケットボール選手権大会」）
-        public string BaseTournamentName { get; set; } = "全日本バスケットボール大会";
+        public List<TournamentNameMaster> TournamentNames { get; set; } = new();
 
         public List<AreaMaster> Areas { get; set; } = new();
         public List<TeamMaster> Teams { get; set; } = new();
