@@ -28,7 +28,7 @@
                         @foreach (var team in unassignedTeamsArray)
                         {
                             <div class="team-token" style="padding: 5px; margin-bottom: 5px; background: #e9ecef; border-radius: 4px;">
-                                <span class="area-badge" style="background: #6c757d; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-right: 5px;">@team.Area</span> @team.Name
+                                <span class="area-badge" style="background: #6c757d; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-right: 5px;">@team.AreaName</span> @team.Name
                             </div>
                         }
                     }
@@ -45,7 +45,7 @@
                         {
                             @foreach (var team in unassignedTeamsArray)
                             {
-                                <option value="@team.Id">[@team.Area] @team.Name</option>
+                                <option value="@team.Id">[@team.AreaName] @team.Name</option>
                             }
                         }
                     </select>

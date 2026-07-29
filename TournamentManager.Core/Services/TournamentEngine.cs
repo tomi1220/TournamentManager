@@ -15,7 +15,7 @@ namespace TournamentManager.Core.Services
         private const double RoundWidth = 160;
         private const double LeftMargin = 120;
 
-        public void BuildStructure(List<Team> activeTeams, Dictionary<int, string> slotAssignments, Dictionary<string, MatchResult> matchResults)
+        public void BuildStructure(List<TeamMaster> activeTeams, Dictionary<int, string> slotAssignments, Dictionary<string, MatchResult> matchResults)
         {
             Matches.Clear();
             SvgTexts.Clear();
@@ -61,7 +61,7 @@ namespace TournamentManager.Core.Services
                         if (team != null)
                         {
                             SvgTexts.Add(new SvgTextElement { X = LeftMargin + 5, Y = y - 5, CssClass = "team-name", Content = team.Name });
-                            SvgTexts.Add(new SvgTextElement { X = LeftMargin + 5, Y = y + 10, CssClass = "area-name", Content = team.Area });
+                            SvgTexts.Add(new SvgTextElement { X = LeftMargin + 5, Y = y + 10, CssClass = "area-name", Content = team.AreaName });
                         }
                     }
                     actualRowCounter++;

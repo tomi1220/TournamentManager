@@ -20,30 +20,56 @@ namespace TournamentManager.Core.Models
         public Dictionary<int, string> MenSlotAssignments { get; set; } = new();
         public Dictionary<int, string> WomenSlotAssignments { get; set; } = new();
 
-        // ※もし試合結果オブジェクト(MatchResults)もあれば、同様にここへ追加します
-        public int MyProperty { get; set; }
+        public List<MatchResult> MenMatchResults { get; set; } = new();
+        public List<MatchResult> WomenMatchResults { get; set; } = new();
     }
 
-    public class Team
+    // 地区マスタ
+    public class AreaMaster
     {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Area { get; set; } = "";
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class TeamMaster
+    {
+        /// <summary>チームID</summary>
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        /// <summaryチーム名称</summary>
+        public string Name { get; set; } = string.Empty;
+        /// <summaryチーム略称</summary>
+        public string ShortName { get; set; } = string.Empty;
+        /// <summary>所属地区名</summary>
+        public string AreaName { get; set; } = string.Empty;
+        // 男女区分
+        public string Gender { get; set; } = "Men";           // "Men" または "Women"
+    }
+
+    // アプリ全体の設定やマスタをまとめるコンテナ
+    public class AppMasterSettings
+    {
+        // 1) 大会基本名称（例：「市民バスケットボール選手権大会」）
+        public string BaseTournamentName { get; set; } = "全日本バスケットボール大会";
+
+        public List<AreaMaster> Areas { get; set; } = new();
+        public List<TeamMaster> Teams { get; set; } = new();
     }
 
     public class TournamentEntry
     {
         public string Gender { get; set; } = "Men";
-        public List<Team> ConfirmedTeams { get; set; } = new List<Team>();
+        public List<TeamMaster> ConfirmedTeams { get; set; } = new List<TeamMaster>();
         public Dictionary<int, string> SlotAssignments { get; set; } = new Dictionary<int, string>();
         public Dictionary<string, MatchResult> MatchResults { get; set; } = new Dictionary<string, MatchResult>();
     }
 
     public class MatchResult
     {
+        public int MatchId { get; set; }
         public int? ScoreA { get; set; }
         public int? ScoreB { get; set; }
         public string? WinnerTeamId { get; set; }
+        public bool IsFinished { get; set; }
     }
 
     public class MatchNode
@@ -51,8 +77,8 @@ namespace TournamentManager.Core.Models
         public string MatchId { get; set; } = "";
         public int Round { get; set; }
         public int Position { get; set; }
-        public Team? TeamA { get; set; }
-        public Team? TeamB { get; set; }
+        public TeamMaster? TeamA { get; set; }
+        public TeamMaster? TeamB { get; set; }
         public int? ScoreA { get; set; }
         public int? ScoreB { get; set; }
         public string? WinnerTeamId { get; set; }
