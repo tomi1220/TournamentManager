@@ -36,7 +36,7 @@
     @if (masterTeamsArray != null && masterTeamsArray.Length > 0)
     {
         <div class="area-groups">
-            @foreach (var areaGroup in masterTeamsArray.GroupBy(t => t.Area))
+            @foreach (var areaGroup in masterTeamsArray.GroupBy(t => t.AreaName))
             {
                 <div class="area-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff;">
                     <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px;">@areaGroup.Key 地区 (@areaGroup.Count() チーム)</h3>

@@ -1,0 +1,75 @@
+﻿@page "/live-scores"
+@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Threading
+@implements IDisposable
+@inject TournamentState State
+
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="text-align: center; color: #333;">🏀 大会リアルタイム速報</h2>
+    <p style="text-align: center; color: gray; font-size: 14px;">※この画面は5秒ごとに自動更新されます</p>
+
+    <h3 style="border-bottom: 2px solid #ff9900; padding-bottom: 5px; margin-top: 25px;">
+        @State.CurrentTournament?.Name (@(State.CurrentGender == "Men" ? "男子" : "女子"))
+    </h3>
+
+    <div style="margin-top: 20px;">
+        @if (!State.GetCurrentMatchResults().Any())
+        {
+            <p style="text-align: center; color: gray;">現在進行中の試合はありません。</p>
+        }
+        else
+        {
+            @foreach (var match in State.GetCurrentMatchResults())
+            {
+                <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 8px;">
+                        <span>ID: @match.MatchId</span>
+                        <span style="font-weight: bold; color: @(match.IsFinished ? "gray" : "green");">
+                            @(match.IsFinished ? "【試合終了】" : "● 試合中")
+                        </span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-around; align-items: center; font-size: 18px; font-weight: bold;">
+                        <div style="text-align: center; width: 40%;">
+                            <div>チームA</div>
+                            <div style="font-size: 28px; margin-top: 5px; color: @(match.IsFinished && match.WinnerTeamId == "A" ? "#ff9900" : "#333")">@match.ScoreA</div>
+                        </div>
+
+                        <div style="color: #999; font-size: 14px;">VS</div>
+
+                        <div style="text-align: center; width: 40%;">
+                            <div>チームB</div>
+                            <div style="font-size: 28px; margin-top: 5px; color: @(match.IsFinished && match.WinnerTeamId == "B" ? "#ff9900" : "#333")">@match.ScoreB</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private Timer? timer;
+
+    protected override void OnInitialized()
+    {
+        // 💡 5秒ごとにファイルから最新データを再ロードするタイマーを設定
+        timer = new Timer(OnTimerCallback, null, 0, 5000);
+    }
+
+    private void OnTimerCallback(object? state)
+    {
+        // 💡 バックグラウンドでJSONファイルを読み込み直す
+        State.LoadFromFile();
+
+        // UIスレッドを強制的に再描画
+        InvokeAsync(StateHasChanged);
+    }
+
+    // 💡 画面を閉じるときにタイマーを破棄してメモリリークを防ぐ
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

@@ -15,19 +15,19 @@ namespace TournamentManager.App.Pages
         private int selectedTeamIdsCount = 0;
         private string fileMessage = "";
 
-        private Team[]? masterTeamsArray;
+        private TeamMaster[]? masterTeamsArray;
 
         protected override void OnInitialized()
         {
             // テスト用のダミーマスターデータ（本物の読み込みロジックがあればそちらに差し替えてください）
-            masterTeamsArray = new Team[]
+            masterTeamsArray = new TeamMaster[]
             {
-            new Team { Id = "1", Name = "シャークス", Area = "北部" },
-            new Team { Id = "2", Name = "レイカーズ", Area = "北部" },
-            new Team { Id = "3", Name = "ブルズ", Area = "南部" },
-            new Team { Id = "4", Name = "ウォリアーズ", Area = "南部" },
-            new Team { Id = "5", Name = "セルティックス", Area = "東部" },
-            new Team { Id = "6", Name = "ネッツ", Area = "西部" }
+                new TeamMaster { Id = "1", Name = "シャークス", AreaName = "北部" },
+                new TeamMaster { Id = "2", Name = "レイカーズ", AreaName = "北部" },
+                new TeamMaster { Id = "3", Name = "ブルズ", AreaName = "南部" },
+                new TeamMaster { Id = "4", Name = "ウォリアーズ", AreaName = "南部" },
+                new TeamMaster { Id = "5", Name = "セルティックス", AreaName = "東部" },
+                new TeamMaster { Id = "6", Name = "ネッツ", AreaName = "西部" }
             };
         }
 

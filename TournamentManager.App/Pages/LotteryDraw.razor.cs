@@ -8,8 +8,8 @@ namespace TournamentManager.App.Pages
     public partial class LotteryDraw
     {
         private TournamentEngine engine = new TournamentEngine();
-        private List<Team> confirmedTeamsList = new List<Team>();
-        private List<Team> unassignedTeamsArray = new List<Team>();
+        private List<TeamMaster> confirmedTeamsList = new List<TeamMaster>();
+        private List<TeamMaster> unassignedTeamsArray = new List<TeamMaster>();
         private int unassignedTeamsCount = 0;
         private string selectedTeamIdForDraw = "";
         private int inputSlotNumber;
@@ -27,11 +27,18 @@ namespace TournamentManager.App.Pages
         {
             if (State.CurrentTournament == null) return;
 
-            // ※前画面の masterTeamsArray と同様に、本来はマスターデータ等から
-            // 「現在選択されているチームID一覧」に合致するTeamオブジェクトのリストを生成してください。
-            // ここでは仮で、Stateに保存されているIDを元にTeamオブジェクトを作成しています。
+            if (State.CurrentTournament == null) return;
+
+            // 💡 チームマスタから、現在選択されているチームのデータを引っ張ってくる
             confirmedTeamsList = State.CurrentTournament.Teams
-                .Select(id => new Team { Id = id, Name = $"チーム {id}", Area = "地区" })
+                .Select(id => State.MasterSettings.Teams.FirstOrDefault(t => t.Id == id))
+                .Where(t => t != null)
+                .Select(t => new TeamMaster
+                {
+                    Id = t!.Id,
+                    Name = t.ShortName,
+                    AreaName = t.AreaName
+                })
                 .ToList();
         }
 

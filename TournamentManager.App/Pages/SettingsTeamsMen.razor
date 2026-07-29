@@ -1,0 +1,93 @@
+﻿@page "/settings/teams/men"
+@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Linq
+@inject TournamentState State
+@inject NavigationManager Nav
+
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h2>🙋‍♂️ 男子チーム マスタ管理</h2>
+    <p style="color: gray;">男子登録チームの一覧および新規登録を行います。</p>
+
+    <div style="background: #f1f7fc; padding: 20px; border-radius: 6px; border-left: 5px solid #007bff;">
+        <h4>新規男子チーム登録</h4>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-top: 15px;">
+            <input @bind="newTeamName" placeholder="正式名称（例：千代田クラブ）" class="form-control" style="padding: 8px;" />
+            <input @bind="newTeamShortName" placeholder="略称（例：千代田）" class="form-control" style="padding: 8px;" />
+            <select @bind="selectedAreaForTeam" class="form-control" style="padding: 8px;">
+                <option value="">-- 所属地区 --</option>
+                @foreach (var area in State.MasterSettings.Areas)
+                {
+                    <option value="@area.Name">@area.Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" @onclick="AddTeam" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">追加</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 25px;">
+        <h4>登録済み 男子チーム一覧</h4>
+        <table class="table" style="width: 100%; background: #fff; border-collapse: collapse; text-align: left; margin-top: 10px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #eee; background: #f8f9fa;">
+                    <th style="padding: 10px;">正式名称</th>
+                    <th style="padding: 10px;">Bracket表示用略称</th>
+                    <th style="padding: 10px;">所属地区</th>
+                    <th style="width: 80px; padding: 10px; text-align: center;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 💡 男子チームのみをフィルターして表示 -->
+                @foreach (var team in State.MasterSettings.Teams.Where(t => t.Gender == "Men"))
+                {
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px;">@team.Name</td>
+                        <td style="padding: 10px; font-weight: bold; color: #007bff;">@team.ShortName</td>
+                        <td style="padding: 10px;"><span class="badge" style="background: #6c757d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">@team.AreaName</span></td>
+                        <td style="padding: 10px; text-align: center;">
+                            <button class="btn btn-danger btn-sm" @onclick="() => RemoveTeam(team)" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">削除</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; gap: 10px;">
+        <button class="btn btn-secondary" @onclick='() => Nav.NavigateTo("/")' style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">← ホームへ</button>
+        <button class="btn btn-outline-primary" @onclick='() => Nav.NavigateTo("/settings/teams/women")' style="padding: 8px 15px; border: 1px solid #007bff; color: #007bff; background: #fff; border-radius: 4px; cursor: pointer;">👩‍女子チーム管理へ切り替え</button>
+    </div>
+</div>
+
+@code {
+    private string newTeamName = "";
+    private string newTeamShortName = "";
+    private string selectedAreaForTeam = "";
+
+    private void AddTeam()
+    {
+        if (string.IsNullOrWhiteSpace(newTeamName) || string.IsNullOrWhiteSpace(selectedAreaForTeam)) return;
+
+        var shortName = string.IsNullOrWhiteSpace(newTeamShortName) ?
+            (newTeamName.Length > 5 ? newTeamName.Substring(0, 5) : newTeamName) : newTeamShortName;
+
+        // 💡 Gender を "Men" 固定で登録
+        State.MasterSettings.Teams.Add(new TeamMaster
+        {
+            Name = newTeamName,
+            ShortName = shortName,
+            AreaName = selectedAreaForTeam,
+            Gender = "Men"
+        });
+
+        newTeamName = "";
+        newTeamShortName = "";
+        State.SaveToFile();
+    }
+
+    private void RemoveTeam(TeamMaster team)
+    {
+        State.MasterSettings.Teams.Remove(team);
+        State.SaveToFile();
+    }
+}
