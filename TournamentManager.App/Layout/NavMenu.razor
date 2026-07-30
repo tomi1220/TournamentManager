@@ -1,6 +1,15 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using TournamentManager.Core.Models
+@using TournamentManager.Core.Services
+@using System.Text.Json
+@using System.IO
+@using System.Text
+@inject TournamentState State
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">TournamentManager.App</a>
+        <a class="navbar-brand" href="">バスケ大会管理</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -61,6 +70,46 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
             </NavLink>
         </div>
+
+        <!-- 💡 境界線 -->
+        <hr style="border-color: rgba(255,255,255,0.2); margin: 15px 10px;" />
+
+        <!-- 💡 🆕 サイドバー専用：データ移行・バックアップセクション -->
+        <div class="px-3" style="color: rgba(255,255,255,0.7); font-size: 12px; font-weight: bold; margin-bottom: 10px;">
+            💻 PC間データ移行・作業再開
+        </div>
+
+        <!-- 📥 現在の状態をエクスポート -->
+        <div class="px-3 style="margin-bottom: 10px;">
+            <button @onclick="ExportDataWithStateAsync" class="btn btn-sm btn-primary w-100" style="text-align: left; font-size: 13px; padding: 6px 10px;">
+                📥 現在の作業状態を保存
+            </button>
+        </div>
+
+        <!-- 📤 ファイルから復元して再開 -->
+        <div class="px-3" style="margin-bottom: 15px;">
+            <div style="position: relative; overflow: hidden; display: inline-block; width: 100%;">
+                <button class="btn btn-sm btn-success w-100" style="text-align: left; font-size: 13px; padding: 6px 10px;">
+                    📤 別PCの続きから再開
+                </button>
+                <InputFile OnChange="ImportDataWithStateAsync" accept=".json" style="position: absolute; font-size: 100px; opacity: 0; right: 0; top: 0; cursor: pointer;" />
+            </div>
+        </div>
+
+        <!-- 現在作業中のステータス表示 -->
+        <div class="px-3" style="color: #fff; font-size: 12px; background: rgba(255,255,255,0.1); margin: 0 10px; padding: 8px; border-radius: 4px;">
+            <div style="color: #aaa;">現在の作業大会:</div>
+            <div style="font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffc107;">
+                @(State.CurrentTournament?.Name ?? "（大会未選択）")
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(menuMessage))
+        {
+            <div class="px-3" style="margin-top: 10px; font-size: 11px; color: #ffc107; padding: 0 10px; word-break: break-all;">
+                @menuMessage
+            </div>
+        }
     </nav>
 </div>
 
@@ -69,8 +118,104 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    private string menuMessage = "";
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    // 💡 🆕 【エクスポート】現在の選択大会IDも含めてJSON化
+    private async Task ExportDataWithStateAsync()
+    {
+        try
+        {
+            menuMessage = "";
+
+            // 💡 現在作業中の大会IDを記録して、別PCに引き継げるようにする
+            State.LastActiveTournamentId = State.CurrentTournament?.Id;
+
+            var exportContainer = new
+            {
+                SavedTournaments = State.SavedTournaments,
+                MasterSettings = State.MasterSettings,
+                LastActiveTournamentId = State.LastActiveTournamentId
+            };
+
+            string jsonText = JsonSerializer.Serialize(exportContainer, new JsonSerializerOptions { WriteIndented = true });
+            byte[] fileBytes = Encoding.UTF8.GetBytes(jsonText);
+
+            using var fileStream = new MemoryStream(fileBytes);
+            using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+            string safeTournamentName = State.CurrentTournament?.Name ?? "Tournament";
+            string fileName = $"{safeTournamentName}_作業継続_{DateTime.Now:yyyyMMdd_HHmm}.json";
+
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+            menuMessage = "💾 ファイルを出力しました。";
+        }
+        catch (Exception ex)
+        {
+            menuMessage = $"❌ エラー: {ex.Message}";
+        }
+    }
+
+    // 💡 🆕 【インポート】読み込み完了後、前回の作業中の画面へ自動ジャンプ
+    private async Task ImportDataWithStateAsync(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            menuMessage = "同期中...";
+
+            using var stream = e.File.OpenReadStream(maxAllowedSize: 1024 * 1024 * 5);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            string jsonText = await reader.ReadToEndAsync();
+
+            using var doc = JsonDocument.Parse(jsonText);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("SavedTournaments", out var tournamentsProp) &&
+                root.TryGetProperty("MasterSettings", out var masterProp))
+            {
+                var importedTournaments = JsonSerializer.Deserialize<List<TournamentInfo>>(tournamentsProp.GetRawText());
+                var importedMaster = JsonSerializer.Deserialize<AppMasterSettings>(masterProp.GetRawText());
+
+                if (importedTournaments != null && importedMaster != null)
+                {
+                    State.SavedTournaments = importedTournaments;
+                    State.MasterSettings = importedMaster;
+
+                    // 💡 ファイル内に「前回の作業中ID」が記録されていれば、その大会をアクティブに復元
+                    if (root.TryGetProperty("LastActiveTournamentId", out var idProp) &&
+                        Guid.TryParse(idProp.GetString(), out Guid activeId))
+                    {
+                        State.CurrentTournament = State.SavedTournaments.FirstOrDefault(t => t.Id == activeId);
+                    }
+
+                    // もし見つからなければ、リストの先頭をセット
+                    if (State.CurrentTournament == null)
+                    {
+                        State.CurrentTournament = State.SavedTournaments.FirstOrDefault();
+                    }
+
+                    // 💡 ブラウザのIndexedDB側も新しい内容で上書き更新！
+                    string saveJson = JsonSerializer.Serialize(State.SavedTournaments);
+                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", saveJson);
+
+                    menuMessage = "✅ 続きから再開しました！";
+
+                    // 💡 作業中の画面（出場チーム選択画面など）へ自動的に遷移・リフレッシュさせる
+                    Navigation.NavigateTo("/team-selection", forceLoad: true);
+                }
+            }
+            else
+            {
+                menuMessage = "❌ 非対応のファイルです。";
+            }
+        }
+        catch (Exception ex)
+        {
+            menuMessage = $"❌ 復元失敗: {ex.Message}";
+        }
     }
 }

@@ -21,12 +21,12 @@
             <h4>大会基本名称の管理</h4>
             <p style="color: gray; font-size: 14px;">※毎年使い回せる、年度や回数を抜いた固定の名称を入力してください。</p>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <input @bind="State.MasterSettings.BaseTournamentName" class="form-control" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" />
+                <input @bind="State.DummyTournamentName" class="form-control" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;" />
                 <button class="btn btn-success" @onclick="SaveAll" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">設定を保存</button>
             </div>
             <div style="margin-top: 20px; color: #555; font-size: 14px; background: #e9ecef; padding: 10px; border-radius: 4px;">
                 <strong>新規大会作成時の自動入力例：</strong> <br />
-                <span style="color: #007bff; font-weight: bold;">@(DateTime.Now.Year)年度 @State.MasterSettings.BaseTournamentName</span>
+                <span style="color: #007bff; font-weight: bold;">@(DateTime.Now.Year)年度 @State.DummyTournamentName</span>
             </div>
         </div>
     }
@@ -107,7 +107,7 @@
     private void SaveAll()
     {
         // 💡 共通設定・地区マスタの変更をJSONファイルに上書き保存
-        State.SaveToFile();
+        //State.SaveToFile();
         StateHasChanged();
     }
 }

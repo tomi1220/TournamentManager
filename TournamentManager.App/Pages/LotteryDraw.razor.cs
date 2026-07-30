@@ -82,7 +82,7 @@ namespace TournamentManager.App.Pages
             inputSlotNumber = 0;
 
             // 💡 更新されたデータを即座にJSONファイルへ保存！
-            State.SaveToFile();
+            //State.SaveToFile();
 
             RefreshBracket();
         }
@@ -93,7 +93,7 @@ namespace TournamentManager.App.Pages
 
             // 💡 データをクリアしてファイル保存
             State.GetCurrentSlotAssignments().Clear();
-            State.SaveToFile();
+            //State.SaveToFile();
 
             RefreshBracket();
         }

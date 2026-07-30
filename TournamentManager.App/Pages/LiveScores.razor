@@ -61,7 +61,7 @@
     private void OnTimerCallback(object? state)
     {
         // 💡 バックグラウンドでJSONファイルを読み込み直す
-        State.LoadFromFile();
+        //State.LoadFromFile();
 
         // UIスレッドを強制的に再描画
         InvokeAsync(StateHasChanged);
