@@ -12,7 +12,8 @@ namespace TournamentManager.Core.Services
         public List<SvgTextElement> SvgTexts { get; } = new List<SvgTextElement>();
 
         private const double SvgHeight = 1200;
-        private const double RoundWidth = 160;
+        //private const double RoundWidth = 160;
+        private const double RoundWidth = 100;
         private const double LeftMargin = 120;
 
         public void BuildStructure(List<TeamMaster> activeTeams, Dictionary<int, string> slotAssignments, Dictionary<string, MatchResult> matchResults)
@@ -72,16 +73,28 @@ namespace TournamentManager.Core.Services
             {
                 int idxA = i * 2;
                 int idxB = i * 2 + 1;
-                if (internalSlotToYMap[idxA] < 0) internalSlotToYMap[idxA] = internalSlotToYMap[idxB];
-                if (internalSlotToYMap[idxB] < 0) internalSlotToYMap[idxB] = internalSlotToYMap[idxA];
+                if (internalSlotToYMap[idxA] < 0)
+                {
+                    internalSlotToYMap[idxA] = internalSlotToYMap[idxB];
+                }
+                if (internalSlotToYMap[idxB] < 0)
+                {
+                    internalSlotToYMap[idxB] = internalSlotToYMap[idxA];
+                }
             }
 
             string?[] currentSlotTeams = new string?[TotalSlots];
             int teamAssignIndex = 0;
             for (int i = 0; i < TotalSlots; i++)
             {
-                if (isSeedSlotInternal[i]) currentSlotTeams[i] = "SEED";
-                else slotAssignments.TryGetValue(teamAssignIndex++, out currentSlotTeams[i]);
+                if (isSeedSlotInternal[i])
+                {
+                    currentSlotTeams[i] = "SEED";
+                }
+                else
+                {
+                    slotAssignments.TryGetValue(teamAssignIndex++, out currentSlotTeams[i]);
+                }
             }
 
             int totalRounds = (int)Math.Log2(TotalSlots);
@@ -97,12 +110,22 @@ namespace TournamentManager.Core.Services
                 upperLineHighlighted[i] = false;
             }
 
+            // 中央（決勝戦）を挟んで左右に振り分ける
+            int sideMatchCount = currentMatchCount / 2; // 片側あたりの試合数
+
             for (int r = 0; r < totalRounds; r++)
             {
                 double[] nextYPositions = new double[currentMatchCount];
                 string?[] nextSlotTeams = new string?[currentMatchCount];
                 bool[] nextLineHighlighted = new bool[currentMatchCount];
 
+                // 決勝戦（最後のラウンド）の場合のみ、中央で左右が合流する
+                if (r == totalRounds - 1)
+                {
+                    //// 決勝戦専用のノードをCenterX(中央)に1つだけ配置する処理
+                    //BuildFinalMatch(centerX, yMid);
+                    continue;
+                }
                 for (int i = 0; i < currentMatchCount; i++)
                 {
                     int idxA = i * 2;
@@ -220,13 +243,33 @@ namespace TournamentManager.Core.Services
                     {
                         bool parent1WasSeed = isSeedSlotInternal[idxA * 2] || isSeedSlotInternal[idxA * 2 + 1];
                         bool parent2WasSeed = isSeedSlotInternal[idxB * 2] || isSeedSlotInternal[idxB * 2 + 1];
-                        if (parent1WasSeed) match.LineStartXA = LeftMargin;
-                        if (parent2WasSeed) match.LineStartXB = LeftMargin;
+                        if (parent1WasSeed)
+                        {
+                            match.LineStartXA = LeftMargin;
+                        }
+                        if (parent2WasSeed)
+                        {
+                            match.LineStartXB = LeftMargin;
+                        }
                     }
                     if (match.ScoreA.HasValue && match.ScoreB.HasValue)
                     {
-                        SvgTexts.Add(new SvgTextElement { X = match.X - 15, Y = match.ParentAY - 6, CssClass = "score-text", Content = match.ScoreA.ToString()! });
-                        SvgTexts.Add(new SvgTextElement { X = match.X - 15, Y = match.ParentBY - 6, CssClass = "score-text", Content = match.ScoreB.ToString()! });
+                        SvgTexts.Add(
+                            new SvgTextElement
+                            {
+                                X = match.X - 15,
+                                Y = match.ParentAY - 6,
+                                CssClass = "score-text",
+                                Content = match.ScoreA.ToString()!
+                            });
+                        SvgTexts.Add(
+                            new SvgTextElement
+                            {
+                                X = match.X - 15,
+                                Y = match.ParentBY - 6,
+                                CssClass = "score-text",
+                                Content = match.ScoreB.ToString()!
+                            });
                     }
                     Matches.Add(match);
                     nextYPositions[i] = yMid;

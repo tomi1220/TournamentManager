@@ -63,10 +63,7 @@ namespace TournamentManager.Core.Models
     // アプリ全体の設定やマスタをまとめるコンテナ
     public class AppMasterSettings
     {
-        //public string BaseTournamentName { get; set; } = "全日本バスケットボール大会";
-
-        public List<TournamentNameMaster> TournamentNames = new();
-
+        public List<TournamentNameMaster> TournamentNames { get; set; } = new();
         public List<AreaMaster> Areas { get; set; } = new();
         public List<TeamMaster> Teams { get; set; } = new();
     }
@@ -109,12 +106,18 @@ namespace TournamentManager.Core.Models
         public double LineStartXA { get; set; }
         public double LineStartXB { get; set; }
 
-        // 【新規：勝者ルート用】各線のCSSクラスを保持する変数 ("match-line" または "winner-line")
+        // 【勝者ルート用】各線のCSSクラスを保持する変数 ("match-line" または "winner-line")
         public string ClassLineA { get; set; } = "match-line";
         public string ClassLineB { get; set; } = "match-line";
         public string ClassVerticalA { get; set; } = "match-line"; // 中央上側の縦線
         public string ClassVerticalB { get; set; } = "match-line"; // 中央下側の縦線
         public string ClassNextLine { get; set; } = "match-line";  // 次へ進む右横線
+
+        /// <summary>上側(A)から中央へ向かう合流縦線のCSSクラス</summary>
+        public string ClassLineVerticalUp { get; set; } = string.Empty;
+
+        /// <summary>下側(B)から中央へ向かう合流縦線のCSSクラス</summary>
+        public string ClassLineVerticalDown { get; set; } = string.Empty;
     }
 
     public class SvgTextElement

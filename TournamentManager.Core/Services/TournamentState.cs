@@ -28,9 +28,9 @@ namespace TournamentManager.Core.Services
         public string CurrentGender { get; set; } = "Men";
 
         // 追加：マスター設定データ
-        public List<TournamentNameMaster>? MasterTournamentNames { get; set; } = new();
-        public List<AreaMaster>? MasterAreas { get; set; } = new();
-        public List<TeamMaster>? MasterTeams { get; set; } = new();
+        //public List<TournamentNameMaster>? MasterTournamentNames { get; set; } = new();
+        //public List<AreaMaster>? MasterAreas { get; set; } = new();
+        //public List<TeamMaster>? MasterTeams { get; set; } = new();
         public AppMasterSettings MasterSettings { get; set; } = new();
 
         // インポート時に「作業中だった大会」を自動で復元するための手がかり

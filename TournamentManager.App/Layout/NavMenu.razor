@@ -199,8 +199,10 @@
                     }
 
                     // 💡 ブラウザのIndexedDB側も新しい内容で上書き更新！
-                    string saveJson = JsonSerializer.Serialize(State.SavedTournaments);
-                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", saveJson);
+                    string saveJsonSavedTournaments = JsonSerializer.Serialize(State.SavedTournaments);
+                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", saveJsonSavedTournaments);
+                    string saveJsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings);
+                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", saveJsonAllTournamentMaster);
 
                     menuMessage = "✅ 続きから再開しました！";
 

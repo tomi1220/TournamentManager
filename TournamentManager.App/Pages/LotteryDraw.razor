@@ -4,42 +4,71 @@
 @using System.Text.Json
 @inject TournamentState State
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
-<div class="lottery-wrapper">
+<!-- 💡 画面全体を囲うメインコンテナ（サイドバーの外側には干渉させない） -->
+<div class="lottery-page-container">
+
+    <!-- 🛠️ 操作パネル（印刷時はこのブロックごと非表示） -->
     <div class="control-panel no-print">
-        <h2>@State.CurrentTournament?.Name の抽選会・組合せ入力設定 (@(State.CurrentGender == "Men" ? "男子" : "女子"))</h2>
+        <h2>@State.CurrentTournament?.Name の抽選会・組合せ入力設定</h2>
+
+        <!-- 🗂️ 「男子」「女子」切り替えタブ -->
+        <ul class="nav nav-tabs custom-lottery-tabs">
+            <li class="nav-item">
+                <button class="nav-link men-tab @(activeGender == "Men" ? "active" : "")"
+                        @onclick='() => ChangeGenderTabAsync("Men")'>
+                    🙋‍♂️ 男子の抽選
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link women-tab @(activeGender == "Women" ? "active" : "")"
+                        @onclick='() => ChangeGenderTabAsync("Women")'>
+                    👩‍🦰 女子の抽選
+                </button>
+            </li>
+        </ul>
 
         <div class="save-status-badge">
-            <span class="status-dot"></span> 抽選データは自動保存されています（tournament_storage.json）
+            <span class="status-dot"></span>
+            抽選データは IndexedDB に自動保存されています
         </div>
 
-        <div class="file-io-panel" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 6px; border: 1px solid #ddd;">
-            <p style="margin: 0; font-size: 14px; color: #666;">※別PCへのデータ移行が必要な場合は、サーバー内のJSONファイルをコピーしてください。</p>
-        </div>
-
-        <p>確定した @totalSlotsCount チームを枠番号に割り当てます。</p>
+        <p class="description-text">確定した @totalSlotsCount チームを枠番号に割り当てます。</p>
 
         <div class="lottery-layout">
+            <!-- 未抽選のチーム一覧 -->
             <div class="unassigned-box">
-                <h4>未抽選のチーム一覧 (@unassignedTeamsCount)</h4>
+                <h4 class="box-title">未抽選のチーム一覧 (@unassignedTeamsCount)</h4>
                 <div class="unassigned-list">
                     @if (unassignedTeamsArray != null)
                     {
                         @foreach (var team in unassignedTeamsArray)
                         {
-                            <div class="team-token" style="padding: 5px; margin-bottom: 5px; background: #e9ecef; border-radius: 4px;">
-                                <span class="area-badge" style="background: #6c757d; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-right: 5px;">@team.AreaName</span> @team.Name
-                            </div>
+                            if (team.Gender == "Women")
+                            {
+                                <div class="team-token">
+                                    <span class="area-women-badge">@team.AreaName</span>@team.Name
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="team-token">
+                                    <span class="area-men-badge">@team.AreaName</span>@team.Name
+                                </div>
+                            }
                         }
                     }
                 </div>
             </div>
 
+            <!-- クジ番号の入力フォーム -->
             <div class="assignment-form">
-                <h4>クジ番号の入力</h4>
-                <div class="input-group" style="margin-bottom: 10px;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">チームを選択:</label>
-                    <select @bind="selectedTeamIdForDraw" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                <h4 class="box-title">クジ番号の入力 (@(activeGender == "Men" ? "男子" : "女子"))</h4>
+
+                <div class="input-group">
+                    <label>チームを選択:</label>
+                    <select @bind="selectedTeamIdForDraw">
                         <option value="">-- チームを選択 --</option>
                         @if (unassignedTeamsArray != null)
                         {
@@ -50,31 +79,47 @@
                         }
                     </select>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">引いた枠番号 (1～@totalSlotsCount):</label>
-                    <input type="number" @bind="inputSlotNumber" min="1" max="@totalSlotsCount" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;" />
+
+                <div class="input-group">
+                    <label>引いた枠番号 (1～@totalSlotsCount):</label>
+                    <input type="number" @bind="inputSlotNumber" min="1" max="@totalSlotsCount" />
                 </div>
-                <button class="btn-assign" @onclick="AssignTeamToSlot" disabled="@(string.IsNullOrEmpty(selectedTeamIdForDraw) || inputSlotNumber <= 0)" style="width: 100%; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+
+                <button class="btn-assign-action" @onclick="AssignTeamToSlotAsync" disabled="@(string.IsNullOrEmpty(selectedTeamIdForDraw) || inputSlotNumber <= 0)">
                     割り当てを確定
                 </button>
 
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <p class="error-msg" style="color: red; font-weight: bold; margin-top: 10px;">@errorMessage</p>
+                    <p class="error-msg">@errorMessage</p>
                 }
             </div>
         </div>
 
-        <div class="action-row" style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn-secondary" @onclick="ClearAllAssignments" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">抽選データを一括リセット</button>
-            <button class="btn-print" onclick="window.print()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">この状態でBracketを印刷</button>
-            <button class="btn-back" @onclick='() => Nav.NavigateTo("/team-selection")' style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">← チーム選択に戻る</button>
+        <!-- アクションボタン群 -->
+        <div class="action-row">
+            <div class="left-actions">
+                <button class="btn-reset-data" @onclick="ClearAllAssignmentsAsync">
+                    @(activeGender == "Men" ? "男子" : "女子")の抽選をリセット
+                </button>
+                <button class="btn-print-trigger" onclick="window.print()">
+                    この状態でBracketを印刷
+                </button>
+            </div>
+            <button class="btn-back-nav" @onclick='() => Nav.NavigateTo("/team-selection")'>
+                ← チーム選択に戻る
+            </button>
         </div>
     </div>
 
-    <!-- トーナメント表描画エリア -->
-    <div class="bracket-display-area" style="margin-top: 30px; border: 1px solid #ddd; padding: 20px; background: #fff;">
-        <svg width="1400" height="1200" viewBox="0 0 1400 1200" xmlns="http://w3.org">
+    <!-- 🖨️ 印刷用ヘッダー（通常時はCSSにより非表示、印刷時のみ出現） -->
+    <div class="print-only">
+        <h2 class="print-title">@State.CurrentTournament?.Name トーナメント表 (@(activeGender == "Men" ? "男子" : "女子"))</h2>
+    </div>
+
+    <!-- 📊 トーナメント表描画エリア（svg幅が外枠を壊さないよう100%に追従） -->
+    <div class="bracket-display-area">
+        <svg width="100%" height="100%" viewBox="0 0 1400 1200" xmlns="http://w3.org" preserveAspectRatio="xMidYMid meet">
             <style>
                 .match-line {
                     stroke: #111111;
@@ -102,6 +147,3 @@
         </svg>
     </div>
 </div>
-
-@code {
-}

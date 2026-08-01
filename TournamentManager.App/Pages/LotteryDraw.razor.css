@@ -16,6 +16,34 @@
     margin-top: 15px;
 }
 
+/* 共通ベース */
+.custom-lottery-tabs .nav-link {
+    border: none;
+    padding: 10px 18px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+/* 男子タブ（基準） */
+.custom-lottery-tabs .men-tab {
+    color: #4e73df;
+}
+
+    .custom-lottery-tabs .men-tab.active {
+        color: #fff; /* 反転：白文字 */
+        background-color: #4e73df;
+    }
+
+/* 女子タブ（赤基準） */
+.custom-lottery-tabs .women-tab {
+    color: #ff69b4;
+}
+
+    .custom-lottery-tabs .women-tab.active {
+        color: #fff; /* 反転：白文字 */
+        background-color: #ff69b4;
+    }
+
 .unassigned-box {
     flex: 1;
     background: #fff;
@@ -40,8 +68,17 @@
     font-weight: bold;
 }
 
-.area-badge {
+.area-men-badge {
     background: #4e73df;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+}
+
+.area-women-badge {
+    background: #ff69b4;
     color: white;
     padding: 2px 6px;
     border-radius: 4px;

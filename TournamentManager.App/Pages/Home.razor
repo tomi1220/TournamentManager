@@ -1,5 +1,7 @@
 ﻿@page "/"
 @using System.Text.Json
+@using System.Text.Encodings.Web
+@using System.Text.Unicode
 @using TournamentManager.Core.Services
 @using TournamentManager.Core.Models
 @inject TournamentState State
@@ -140,8 +142,31 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentMaster");
+        if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
+        {
+            var savedMaster = JsonSerializer.Deserialize<AppMasterSettings>(jsonAllTournamentMaster);
+            if (savedMaster != null)
+            {
+                State.MasterSettings = savedMaster;
+            }
+        }
+        else
+        {
+            State.InitializeMaster();
+            var options = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+                WriteIndented = false
+            };
+            jsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings, options);
+            if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
+            {
+                await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", jsonAllTournamentMaster);
+            }
+        }
         var firstMaster = State.MasterSettings.TournamentNames.FirstOrDefault();
         if (firstMaster != null)
         {
@@ -201,22 +226,6 @@
         {
             if (firstRender)
             {
-                string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentMaster");
-                // if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
-                // {
-                //     var savedMaster = JsonSerializer.Deserialize<AppMasterSettings>(jsonAllTournamentMaster);
-                //     if (savedMaster != null)
-                //     {
-                //         State.MasterSettings = savedMaster;
-                //     }
-                // }
-                // else
-                {
-                    State.InitializeMaster();
-                    jsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings);
-                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", jsonAllTournamentMaster);
-                }
-
                 // JavaScript経由でIndexedDBからJSONを取得
                 string jsonAllTournamentData = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentData");
 
@@ -247,7 +256,10 @@
 
     private async Task CreateAndStartAsync()
     {
-        if (string.IsNullOrWhiteSpace(fullTournamentName)) return;
+        if (string.IsNullOrWhiteSpace(fullTournamentName))
+        {
+            return;
+        }
 
         // メモリ（State）に追加
         State.CreateNewTournament(fullTournamentName);
