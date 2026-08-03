@@ -27,6 +27,9 @@ namespace TournamentManager.App.Pages
             State.CurrentGender = activeGender;
 
             InitializeTeams();
+
+
+
             RefreshBracket();
         }
 

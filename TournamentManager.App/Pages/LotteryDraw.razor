@@ -126,15 +126,48 @@
                     stroke-width: 2;
                     fill: none;
                 }
+
+                .match-line_debug1 {
+                    stroke: #006400;
+                    stroke-width: 2;
+                    fill: none;
+                }
+
+                .match-line_debug2 {
+                    stroke: #0000ff;
+                    stroke-width: 2;
+                    fill: none;
+                }
+
+                .match-line_debug3 {
+                    stroke: #ff1493;
+                    stroke-width: 2;
+                    fill: none;
+                }
+
+                .match-line_debug4 {
+                    stroke: #d2691e;
+                    stroke-width: 2;
+                    fill: none;
+                }
             </style>
             @if (engine?.Matches != null)
             {
                 @foreach (var match in engine.Matches)
                 {
+@*
                     <line x1="@match.LineStartXA" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentAY" class="match-line" />
                     <line x1="@match.LineStartXB" y1="@match.ParentBY" x2="@match.X" y2="@match.ParentBY" class="match-line" />
                     <line x1="@match.X" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentBY" class="match-line" />
                     <line x1="@match.X" y1="@match.Y" x2="@(match.X + 160)" y2="@match.Y" class="match-line" />
+ *@
+                    <line x1="@match.LineStartXA" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentAY" class="match-line_debug1" />
+                    <line x1="@match.LineStartXB" y1="@match.ParentBY" x2="@match.X" y2="@match.ParentBY" class="match-line_debug2" />
+                    <line x1="@match.X" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentBY" class="match-line_debug3" />
+                    <!--
+                        このラインは、勝ち上がりのライン？
+                    <line x1="@match.X" y1="@match.Y" x2="@(match.X + 160)" y2="@match.Y" class="match-line_debug4" />
+                    -->
                 }
             }
             @if (engine?.SvgTexts != null)

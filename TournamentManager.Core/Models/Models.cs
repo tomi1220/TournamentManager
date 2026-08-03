@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TournamentManager.Core.Services;
 
 namespace TournamentManager.Core.Models
 {
@@ -128,4 +129,91 @@ namespace TournamentManager.Core.Models
         public string Content { get; set; } = "";
     }
 
+    /// <summary>
+    /// 大会情報
+    /// </summary>
+    public class TournamentData
+    {
+        public enum Category
+        {
+            None = 0,
+            Men = 1,
+            Women = 2,
+            Mixed = 3
+        }
+
+        public enum UsageCls
+        {
+            None = 0,
+            ForLottery = 1,
+            ForTournament = 2
+        }
+
+        /// <summary>
+        /// 男子チーム数
+        /// </summary>
+        public int NumOfMensTeams { get; set; }
+
+        /// <summary>
+        /// 女子チーム数
+        /// </summary>
+        public int NumOfwomensTeams { get; set; }
+
+        ///// <summary>
+        ///// 用途
+        ///// </summary>
+        //public UsageCls Usage { get; set; } = UsageCls.None;
+
+        ///// <summary>
+        ///// 大会名称
+        ///// </summary>
+        //public string TournamentName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 地区名称の表示
+        /// </summary>
+        public bool District { get; set; }
+        /// <summary>
+        /// BEST4で決勝リーグ
+        /// </summary>
+        public bool FinalLeague { get; set; }
+        /// <summary>
+        /// オープン参加表示枠
+        /// </summary>
+        public bool OpenDisplayFrame { get; set; }
+        public List<AreaMaster> VenueDatas { get; set; } = new List<AreaMaster>();
+
+        public Dictionary<Category, BracketData> BrackectDataDic { get; set; } = new Dictionary<Category, BracketData>();
+
+        public PartInfo _allDataInfo { get; set; } = new();
+        public Dictionary<int, PartInfo> _partDic { get; set; } = new Dictionary<int, PartInfo>();
+    }
+    /// <summary>
+    /// パート毎の情報
+    /// </summary>
+    public class PartInfo
+    {
+        /// <summary>
+        /// パート番号
+        /// </summary>
+        public int PartNumber { get; set; }
+        /// <summary>
+        /// チーム数
+        /// </summary>
+        public int NumOfTeams { get; set; } = 0;
+        /// <summary>
+        /// 回戦数
+        /// </summary>
+        public int Round { get; set; } = 0;
+        /// <summary>
+        /// 作業用の枠数（出場チーム数以上の最小べき数）
+        /// </summary>
+        public int FullFrames { get; set; } = 0;
+        /// <summary>
+        /// 1回戦のデータ（0は、不要な枠を表します）
+        /// </summary>
+        public int[,]? FirstRoundData { get; set; }
+        public int NumberOfElement { get; set; }
+        public int[]? Node { get; set; }
+    }
 }

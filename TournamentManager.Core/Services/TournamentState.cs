@@ -263,13 +263,19 @@ namespace TournamentManager.Core.Services
 
         public Dictionary<int, string> GetCurrentSlotAssignments()
         {
-            if (CurrentTournament == null) return new();
+            if (CurrentTournament == null)
+            {
+                return new();
+            }
             return CurrentGender == "Men" ? CurrentTournament.MenSlotAssignments : CurrentTournament.WomenSlotAssignments;
         }
 
         public List<MatchResult> GetCurrentMatchResults()
         {
-            if (CurrentTournament == null) return new();
+            if (CurrentTournament == null)
+            {
+                return new();
+            }
             return CurrentGender == "Men" ? CurrentTournament.MenMatchResults : CurrentTournament.WomenMatchResults;
         }
     }
