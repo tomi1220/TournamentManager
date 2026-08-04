@@ -1,6 +1,8 @@
 ﻿@using TournamentManager.Core.Models
 @using TournamentManager.Core.Services
 @using System.Text.Json
+@using System.Text.Encodings.Web
+@using System.Text.Unicode
 @using System.IO
 @using System.Text
 @inject TournamentState State
@@ -135,14 +137,22 @@
             // 💡 現在作業中の大会IDを記録して、別PCに引き継げるようにする
             State.LastActiveTournamentId = State.CurrentTournament?.Id;
 
-            var exportContainer = new
+            var exportContainer = new ExportContainer
             {
                 SavedTournaments = State.SavedTournaments,
                 MasterSettings = State.MasterSettings,
                 LastActiveTournamentId = State.LastActiveTournamentId
             };
 
-            string jsonText = JsonSerializer.Serialize(exportContainer, new JsonSerializerOptions { WriteIndented = true });
+            string jsonText =
+                // JsonSerializer.Serialize(
+                //     exportContainer,
+                //     new JsonSerializerOptions
+                //     {
+                //         WriteIndented = true,
+                //         Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) // 日本語など全Unicodeをエスケープしない
+                //     });
+                State.SerializeToJSON(exportContainer, typeof(ExportContainer));
             byte[] fileBytes = Encoding.UTF8.GetBytes(jsonText);
 
             using var fileStream = new MemoryStream(fileBytes);
@@ -177,13 +187,23 @@
             if (root.TryGetProperty("SavedTournaments", out var tournamentsProp) &&
                 root.TryGetProperty("MasterSettings", out var masterProp))
             {
-                var importedTournaments = JsonSerializer.Deserialize<List<TournamentInfo>>(tournamentsProp.GetRawText());
-                var importedMaster = JsonSerializer.Deserialize<AppMasterSettings>(masterProp.GetRawText());
+                // JsonSerializerOptions jsonSerializerOptions =
+                //     new JsonSerializerOptions
+                //         {
+                //             WriteIndented = true,
+                //             Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) // 日本語など全Unicodeをエスケープしない
+                //         };
+                var importedTournaments =
+                    //JsonSerializer.Deserialize<List<TournamentInfo>>(tournamentsProp.GetRawText(), jsonSerializerOptions);
+                    State.DeserializeFromJSON(tournamentsProp.GetRawText(), typeof(List<TournamentInfo>));
+                var importedMaster =
+                    //JsonSerializer.Deserialize<AppMasterSettings>(masterProp.GetRawText(), jsonSerializerOptions);
+                    State.DeserializeFromJSON(masterProp.GetRawText(), typeof(AppMasterSettings));
 
                 if (importedTournaments != null && importedMaster != null)
                 {
-                    State.SavedTournaments = importedTournaments;
-                    State.MasterSettings = importedMaster;
+                    State.SavedTournaments = (List<TournamentInfo>)importedTournaments;
+                    State.MasterSettings = (AppMasterSettings)importedMaster;
 
                     // 💡 ファイル内に「前回の作業中ID」が記録されていれば、その大会をアクティブに復元
                     if (root.TryGetProperty("LastActiveTournamentId", out var idProp) &&
@@ -198,10 +218,13 @@
                         State.CurrentTournament = State.SavedTournaments.FirstOrDefault();
                     }
 
-                    // 💡 ブラウザのIndexedDB側も新しい内容で上書き更新！
-                    string saveJsonSavedTournaments = JsonSerializer.Serialize(State.SavedTournaments);
+                    // ブラウザのIndexedDB側も新しい内容で上書き更新！
+                    //string saveJsonSavedTournaments = JsonSerializer.Serialize(State.SavedTournaments);
+                    string saveJsonSavedTournaments =
+                        State.SerializeToJSON(State.SavedTournaments, typeof(List<TournamentInfo>));
                     await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", saveJsonSavedTournaments);
-                    string saveJsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings);
+                    //string saveJsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings);
+                    string saveJsonAllTournamentMaster = State.SerializeToJSON(State.MasterSettings, typeof(AppMasterSettings));
                     await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", saveJsonAllTournamentMaster);
 
                     menuMessage = "✅ 続きから再開しました！";

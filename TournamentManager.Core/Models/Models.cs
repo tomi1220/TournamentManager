@@ -7,6 +7,27 @@ using TournamentManager.Core.Services;
 
 namespace TournamentManager.Core.Models
 {
+    public enum Category
+    {
+        None = 0,
+        Men = 1,
+        Women = 2,
+        Mixed = 3
+    }
+
+    public enum ProgressStatus
+    {
+        None = 0,
+        /// <summary>申込み受付中</summary>
+        BeingAccepted = 1,
+        /// <summary>抽選会</summary>
+        Lottery = 2,
+        /// <summary>大会期間中</summary>
+        DuringTheTournament = 3,
+        /// <summary>大会終了</summary>
+        TournamentEnded = 4
+    }
+
     /// <summary>
     /// 大会情報
     /// </summary>
@@ -16,10 +37,13 @@ namespace TournamentManager.Core.Models
         public string Name { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // 💡 選択されたチームIDのリスト
+        /// <summary>進捗状況</summary>
+        public ProgressStatus Status { get; set; } = ProgressStatus.BeingAccepted;
+
+        // 選択されたチームIDのリスト
         public List<string> Teams { get; set; } = new();
 
-        // 💡 追加：枠番号（キー）と チームID（値）の紐づけ
+        // 追加：枠番号（キー）と チームID（値）の紐づけ
         // 男子用・女子用で分けて管理します
         public Dictionary<int, string> MenSlotAssignments { get; set; } = new();
         public Dictionary<int, string> WomenSlotAssignments { get; set; } = new();
@@ -67,6 +91,13 @@ namespace TournamentManager.Core.Models
         public List<TournamentNameMaster> TournamentNames { get; set; } = new();
         public List<AreaMaster> Areas { get; set; } = new();
         public List<TeamMaster> Teams { get; set; } = new();
+    }
+
+    public class ExportContainer
+    {
+        public List<TournamentInfo>? SavedTournaments { get; set; }
+        public AppMasterSettings? MasterSettings { get; set; }
+        public Guid? LastActiveTournamentId { get; set; }
     }
 
     public class TournamentEntry
@@ -134,14 +165,6 @@ namespace TournamentManager.Core.Models
     /// </summary>
     public class TournamentData
     {
-        public enum Category
-        {
-            None = 0,
-            Men = 1,
-            Women = 2,
-            Mixed = 3
-        }
-
         public enum UsageCls
         {
             None = 0,

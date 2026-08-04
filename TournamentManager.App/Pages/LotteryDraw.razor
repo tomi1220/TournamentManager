@@ -39,11 +39,11 @@
         <div class="lottery-layout">
             <!-- 未抽選のチーム一覧 -->
             <div class="unassigned-box">
-                <h4 class="box-title">未抽選のチーム一覧 (@unassignedTeamsCount)</h4>
+                <h4 class="box-title">未抽選のチーム一覧 (@_unassignedTeamsCount)</h4>
                 <div class="unassigned-list">
-                    @if (unassignedTeamsArray != null)
+                    @if (_unassignedTeamsArray != null)
                     {
-                        @foreach (var team in unassignedTeamsArray)
+                        @foreach (var team in _unassignedTeamsArray)
                         {
                             if (team.Gender == "Women")
                             {
@@ -70,9 +70,9 @@
                     <label>チームを選択:</label>
                     <select @bind="selectedTeamIdForDraw">
                         <option value="">-- チームを選択 --</option>
-                        @if (unassignedTeamsArray != null)
+                        @if (_unassignedTeamsArray != null)
                         {
-                            @foreach (var team in unassignedTeamsArray)
+                            @foreach (var team in _unassignedTeamsArray)
                             {
                                 <option value="@team.Id">[@team.AreaName] @team.Name</option>
                             }
@@ -151,9 +151,9 @@
                     fill: none;
                 }
             </style>
-            @if (engine?.Matches != null)
+            @if (_engine?.Matches != null)
             {
-                @foreach (var match in engine.Matches)
+                @foreach (var match in _engine.Matches)
                 {
 @*
                     <line x1="@match.LineStartXA" y1="@match.ParentAY" x2="@match.X" y2="@match.ParentAY" class="match-line" />
@@ -170,9 +170,9 @@
                     -->
                 }
             }
-            @if (engine?.SvgTexts != null)
+            @if (_engine?.SvgTexts != null)
             {
-                @foreach (var txt in engine.SvgTexts)
+                @foreach (var txt in _engine.SvgTexts)
                 {
                     <SvgText X="@txt.X" Y="@txt.Y" CssClass="@txt.CssClass">@txt.Content</SvgText>
                 }

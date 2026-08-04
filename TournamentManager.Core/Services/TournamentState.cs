@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using TournamentManager.Core.Models;
 
 namespace TournamentManager.Core.Services
@@ -14,9 +16,6 @@ namespace TournamentManager.Core.Services
         // 男子・女子の確定エントリーデータを安全にメモリ保持する
         public TournamentEntry MenEntry { get; } = new TournamentEntry { Gender = "Men" };
         public TournamentEntry WomenEntry { get; } = new TournamentEntry { Gender = "Women" };
-
-        // 💾 保存先ファイルのパス（アプリの実行フォルダ直下に保存されます）
-        private readonly string _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tournament_storage.json");
 
         // 現在操作中（アクティブ）の大会情報
         public TournamentInfo? CurrentTournament { get; set; }
@@ -226,14 +225,19 @@ namespace TournamentManager.Core.Services
         }
 
         // ファイルへデータを上書き保存する
-        public string CreateJsonText(object obj, Type type)
+        public string SerializeToJSON(object obj, Type type)
         {
             try
             {
-                // インデントを揃えて見やすくJSON化
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                //string json = JsonSerializer.Serialize(SavedTournaments, options);
-                string json = JsonSerializer.Serialize(obj, type, options);
+                // インデントを揃えて見やすく
+                // 日本語など全Unicodeをエスケープしない
+                JsonSerializerOptions jsonSerializerOptions =
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+                    };
+                string json = JsonSerializer.Serialize(obj, type, jsonSerializerOptions);
 
                 return json;
             }
@@ -245,6 +249,20 @@ namespace TournamentManager.Core.Services
             }
         }
 
+        public object? DeserializeFromJSON(string jsonText, Type objectType)
+        {
+            JsonSerializerOptions jsonSerializerOptions =
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) // 日本語など全Unicodeをエスケープしない
+                };
+            var obj =
+                JsonSerializer.Deserialize(jsonText, objectType, jsonSerializerOptions);
+
+            return obj;
+        }
+
         // 新しい大会を作成して保存する
         public string CreateNewTournament(string name)
         {
@@ -252,7 +270,7 @@ namespace TournamentManager.Core.Services
             SavedTournaments.Add(newTournament);
             CurrentTournament = newTournament;
 
-            return CreateJsonText(SavedTournaments, typeof(List<TournamentInfo>));
+            return SerializeToJSON(SavedTournaments, typeof(List<TournamentInfo>));
         }
 
         // アクティブなエントリーデータを取得するヘルパー

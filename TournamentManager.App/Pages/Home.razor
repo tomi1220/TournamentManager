@@ -144,6 +144,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentData");
+        if (!string.IsNullOrEmpty(jsonSavedTournaments))
+        {
+            var savedTournamentInfos = State.DeserializeFromJSON(jsonSavedTournaments, typeof(List<TournamentInfo>));
+            if (savedTournamentInfos != null)
+            {
+                State.SavedTournaments = (List<TournamentInfo>)savedTournamentInfos;
+            }
+        }
         string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentMaster");
         if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
         {

@@ -8,10 +8,10 @@ namespace TournamentManager.App.Pages
 {
     public partial class LotteryDraw
     {
-        private TournamentEngine engine = new TournamentEngine();
-        private List<TeamMaster> confirmedTeamsList = new List<TeamMaster>();
-        private List<TeamMaster> unassignedTeamsArray = new List<TeamMaster>();
-        private int unassignedTeamsCount = 0;
+        private TournamentEngine _engine = new TournamentEngine();
+        private List<TeamMaster> _confirmedTeamsList = new List<TeamMaster>();
+        private List<TeamMaster> _unassignedTeamsArray = new List<TeamMaster>();
+        private int _unassignedTeamsCount = 0;
         private string selectedTeamIdForDraw = "";
         private int inputSlotNumber;
         private int totalSlotsCount;
@@ -28,9 +28,28 @@ namespace TournamentManager.App.Pages
 
             InitializeTeams();
 
-
+            // 出場チーム数に変化があれば、bracket作成データを再構築する。
+            BracketData bracketData = new BracketData()
+            {
+                NumOfTeams = _confirmedTeamsList.Count,
+            };
+            bracketData.GenerateBracketbuildingData();
 
             RefreshBracket();
+        }
+
+        private bool isRebuildBracketData()
+        {
+            if (State.CurrentTournament == null)
+            {
+                return true;
+            }
+            if (State.CurrentTournament.Teams == null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         // タブがクリックされた時の非同期処理
@@ -55,7 +74,7 @@ namespace TournamentManager.App.Pages
             if (State.CurrentTournament == null) return;
 
             // チームマスタから、現在選択されているチーム、かつ【選択中の性別】のデータを引っ張ってくる
-            confirmedTeamsList = State.CurrentTournament.Teams
+            _confirmedTeamsList = State.CurrentTournament.Teams
                 .Select(id => State.MasterSettings.Teams.FirstOrDefault(t => t.Id == id))
                 .Where(t => t != null && t.Gender == activeGender) // 👈 性別フィルターを適用
                 .Select(t => new TeamMaster
@@ -72,14 +91,14 @@ namespace TournamentManager.App.Pages
         {
             var currentSlots = State.GetCurrentSlotAssignments();
 
-            totalSlotsCount = confirmedTeamsList.Count;
-            unassignedTeamsArray = confirmedTeamsList
+            totalSlotsCount = _confirmedTeamsList.Count;
+            _unassignedTeamsArray = _confirmedTeamsList
                 .Where(t => !currentSlots.ContainsValue(t.Id))
                 .ToList();
-            unassignedTeamsCount = unassignedTeamsArray.Count;
+            _unassignedTeamsCount = _unassignedTeamsArray.Count;
 
             // トーナメント生成エンジンにStateのデータを渡して再描画
-            engine.BuildStructure(confirmedTeamsList, currentSlots, new Dictionary<string, MatchResult>());
+            _engine.BuildStructure(_confirmedTeamsList, currentSlots, new Dictionary<string, MatchResult>());
         }
 
         private async Task AssignTeamToSlotAsync()

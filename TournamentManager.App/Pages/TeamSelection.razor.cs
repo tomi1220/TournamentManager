@@ -13,14 +13,14 @@ namespace TournamentManager.App.Pages
         private static System.Collections.ArrayList masterTeams = new System.Collections.ArrayList();
         private System.Collections.Hashtable selectedTeamIdsTable = new System.Collections.Hashtable();
         //private Core.Models.Team[] masterTeamsArray = new Core.Models.Team[0];
-        private int selectedTeamIdsCount = 0;
-        private string fileMessage = "";
+        //private int selectedTeamIdsCount = 0;
+        //private string fileMessage = "";
 
-        private TeamMaster[]? masterTeamsArray;
+        //private TeamMaster[]? masterTeamsArray;
 
-        protected override void OnInitialized()
-        {
-        }
+        //protected override async Task OnInitializedAsync()
+        //{
+        //}
 
         // 画面遷移して戻ってきたときに、もし別の画面でIndexedDBが更新されていればここで最新データを再ロードします
         protected override async Task OnAfterRenderAsync(bool firstRender)
