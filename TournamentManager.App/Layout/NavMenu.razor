@@ -145,13 +145,6 @@
             };
 
             string jsonText =
-                // JsonSerializer.Serialize(
-                //     exportContainer,
-                //     new JsonSerializerOptions
-                //     {
-                //         WriteIndented = true,
-                //         Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) // 日本語など全Unicodeをエスケープしない
-                //     });
                 State.SerializeToJSON(exportContainer, typeof(ExportContainer));
             byte[] fileBytes = Encoding.UTF8.GetBytes(jsonText);
 
@@ -187,17 +180,9 @@
             if (root.TryGetProperty("SavedTournaments", out var tournamentsProp) &&
                 root.TryGetProperty("MasterSettings", out var masterProp))
             {
-                // JsonSerializerOptions jsonSerializerOptions =
-                //     new JsonSerializerOptions
-                //         {
-                //             WriteIndented = true,
-                //             Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) // 日本語など全Unicodeをエスケープしない
-                //         };
                 var importedTournaments =
-                    //JsonSerializer.Deserialize<List<TournamentInfo>>(tournamentsProp.GetRawText(), jsonSerializerOptions);
                     State.DeserializeFromJSON(tournamentsProp.GetRawText(), typeof(List<TournamentInfo>));
                 var importedMaster =
-                    //JsonSerializer.Deserialize<AppMasterSettings>(masterProp.GetRawText(), jsonSerializerOptions);
                     State.DeserializeFromJSON(masterProp.GetRawText(), typeof(AppMasterSettings));
 
                 if (importedTournaments != null && importedMaster != null)
@@ -219,19 +204,20 @@
                     }
 
                     // ブラウザのIndexedDB側も新しい内容で上書き更新！
-                    //string saveJsonSavedTournaments = JsonSerializer.Serialize(State.SavedTournaments);
                     string saveJsonSavedTournaments =
                         State.SerializeToJSON(State.SavedTournaments, typeof(List<TournamentInfo>));
-                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", saveJsonSavedTournaments);
-                    //string saveJsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings);
+                    await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentData, saveJsonSavedTournaments);
                     string saveJsonAllTournamentMaster = State.SerializeToJSON(State.MasterSettings, typeof(AppMasterSettings));
-                    await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", saveJsonAllTournamentMaster);
+                    await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentMaster, saveJsonAllTournamentMaster);
 
                     menuMessage = "✅ 続きから再開しました！";
 
                     // 作業中の画面へ自動的に遷移・リフレッシュさせる
                     Navigation.NavigateTo(
-                        State.CurrentTournament ?.ScreenDuringOperation, forceLoad: true);
+                        State.CurrentTournament != null
+                            ? State.CurrentTournament.ScreenDuringOperation
+                            : "/",
+                        forceLoad: true);
                 }
             }
             else

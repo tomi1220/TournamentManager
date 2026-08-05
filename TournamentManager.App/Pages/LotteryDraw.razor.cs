@@ -156,11 +156,11 @@ namespace TournamentManager.App.Pages
                 if (State.CurrentTournament == null) return;
 
                 // State全体、もしくはトーナメントデータをJSON文字列に変換
-                // 保存用のストレージキーは、運用に合わせて変更してください (例: "current_tournament_data")
-                var jsonText = JsonSerializer.Serialize(State.CurrentTournament);
+                // （保存用のストレージキー）
+                var jsonText = State.SerializeToJSON(State.CurrentTournament, typeof(TournamentInfo));
 
                 // index.html内の JavaScriptファンクションを実行
-                await JS.InvokeVoidAsync("saveToIndexedDb", "tournament_storage_key", jsonText);
+                await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyCurrentTournamentData, jsonText);
             }
             catch (Exception ex)
             {

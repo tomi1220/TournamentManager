@@ -144,9 +144,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        State.CurrentTournament.ScreenDuringOperation = "/";
-
-        string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentData");
+        string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentData);
         if (!string.IsNullOrEmpty(jsonSavedTournaments))
         {
             var savedTournamentInfos = State.DeserializeFromJSON(jsonSavedTournaments, typeof(List<TournamentInfo>));
@@ -155,7 +153,7 @@
                 State.SavedTournaments = (List<TournamentInfo>)savedTournamentInfos;
             }
         }
-        string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentMaster");
+        string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentMaster);
         if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
         {
             var savedMaster = JsonSerializer.Deserialize<AppMasterSettings>(jsonAllTournamentMaster);
@@ -172,12 +170,14 @@
                 Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
                 WriteIndented = false
             };
-            jsonAllTournamentMaster = JsonSerializer.Serialize(State.MasterSettings, options);
+            jsonAllTournamentMaster =
+                State.SerializeToJSON(State.MasterSettings, typeof(AppMasterSettings));
             if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
             {
-                await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", jsonAllTournamentMaster);
+                await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentMaster, jsonAllTournamentMaster);
             }
         }
+
         var firstMaster = State.MasterSettings.TournamentNames.FirstOrDefault();
         if (firstMaster != null)
         {
@@ -238,7 +238,7 @@
             if (firstRender)
             {
                 // JavaScript経由でIndexedDBからJSONを取得
-                string jsonAllTournamentData = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentData");
+                string jsonAllTournamentData = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentData);
 
                 if (!string.IsNullOrEmpty(jsonAllTournamentData))
                 {
@@ -276,8 +276,8 @@
         State.CreateNewTournament(fullTournamentName);
 
         // 即座にまとめてIndexedDBにシリアライズ保存！
-        string json = JsonSerializer.Serialize(State.SavedTournaments);
-        await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", json);
+        string json = State.SerializeToJSON(State.SavedTournaments, typeof(List<TournamentInfo>));
+        await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentData, json);
 
         NavManager.NavigateTo("/team-selection");
     }
@@ -288,7 +288,7 @@
         NavManager.NavigateTo("/team-selection");
     }
 
-    // 💡 🆕 【削除ロジック】確認ダイアログ付き
+    // 🆕 【削除ロジック】確認ダイアログ付き
     private async Task DeleteTournamentAsync(TournamentInfo tournament)
     {
         // 💬 JavaScriptの確認メッセージを表示
@@ -303,9 +303,9 @@
             {
                 State.CurrentTournament = null;
             }
-            // 3) 💡 最新のリストを IndexedDB へ上書き保存して永久同期！
-            string json = JsonSerializer.Serialize(State.SavedTournaments);
-            await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentData", json);
+            // 3) 最新のリストを IndexedDB へ上書き保存して永久同期！
+            string json = State.SerializeToJSON(State.SavedTournaments, typeof(List<TournamentInfo>));
+            await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentData, json);
             // 画面の再描画
             StateHasChanged();
         }

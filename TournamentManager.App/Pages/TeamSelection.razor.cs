@@ -32,7 +32,7 @@ namespace TournamentManager.App.Pages
         {
             if (firstRender && !isLoaded)
             {
-                string json = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentMaster");
+                string json = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentData);
                 if (!string.IsNullOrEmpty(json))
                 {
                     var savedList = JsonSerializer.Deserialize<List<TournamentInfo>>(json);
@@ -88,8 +88,8 @@ namespace TournamentManager.App.Pages
             }
 
             // メモリ上の全大会リスト（最新の選択が反映された状態）をJSONに変換してIndexedDBへ上書き保存！
-            string json = JsonSerializer.Serialize(State.SavedTournaments);
-            await JS.InvokeVoidAsync("saveToIndexedDb", "AllTournamentMaster", json);
+            string jsonSavedTournaments = State.SerializeToJSON(State.SavedTournaments, typeof(List<TournamentInfo>));
+            await JS.InvokeVoidAsync("saveToIndexedDb", State.DbKeyAllTournamentData, jsonSavedTournaments);
         }
 
         // 現在選択されているチーム数をカウント

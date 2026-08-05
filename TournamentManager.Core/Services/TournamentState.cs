@@ -12,6 +12,9 @@ namespace TournamentManager.Core.Services
     {
         public string DummyTournamentName = "U12バスケットボール大会";
 
+        public readonly string DbKeyAllTournamentData = "AllTournamentData";
+        public readonly string DbKeyAllTournamentMaster = "AllTournamentMaster";
+        public readonly string DbKeyCurrentTournamentData = "CurrentTournamentData";
 
         // 男子・女子の確定エントリーデータを安全にメモリ保持する
         public TournamentEntry MenEntry { get; } = new TournamentEntry { Gender = "Men" };
