@@ -144,6 +144,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        State.CurrentTournament.ScreenDuringOperation = "/";
+
         string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", "AllTournamentData");
         if (!string.IsNullOrEmpty(jsonSavedTournaments))
         {

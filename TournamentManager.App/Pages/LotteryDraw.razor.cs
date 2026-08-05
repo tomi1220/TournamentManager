@@ -22,6 +22,8 @@ namespace TournamentManager.App.Pages
 
         protected override void OnInitialized()
         {
+            State.CurrentTournament.ScreenDuringOperation = "/lottery-draw";
+
             // 画面起動時、Stateから同期的にデータを復元する
             activeGender = !string.IsNullOrEmpty(State.CurrentGender) ? State.CurrentGender : "Men";
             State.CurrentGender = activeGender;

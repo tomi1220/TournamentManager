@@ -54,6 +54,8 @@
 
     protected override void OnInitialized()
     {
+        State.CurrentTournament.ScreenDuringOperation = "/live-scores";
+
         // 💡 5秒ごとにファイルから最新データを再ロードするタイマーを設定
         timer = new Timer(OnTimerCallback, null, 0, 5000);
     }

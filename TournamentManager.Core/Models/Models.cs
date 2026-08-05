@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TournamentManager.Core.Services;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TournamentManager.Core.Models
 {
@@ -39,6 +40,9 @@ namespace TournamentManager.Core.Models
 
         /// <summary>進捗状況</summary>
         public ProgressStatus Status { get; set; } = ProgressStatus.BeingAccepted;
+
+        /// <summary>作業中の画面</summary>
+        public string ScreenDuringOperation { get; set; } = "/";
 
         // 選択されたチームIDのリスト
         public List<string> Teams { get; set; } = new();

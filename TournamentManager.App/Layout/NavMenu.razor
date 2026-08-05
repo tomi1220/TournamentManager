@@ -162,7 +162,7 @@
             string fileName = $"{safeTournamentName}_作業継続_{DateTime.Now:yyyyMMdd_HHmm}.json";
 
             await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-            menuMessage = "💾 ファイルを出力しました。";
+            menuMessage = " ファイルを出力しました。";
         }
         catch (Exception ex)
         {
@@ -170,7 +170,7 @@
         }
     }
 
-    // 💡 🆕 【インポート】読み込み完了後、前回の作業中の画面へ自動ジャンプ
+    // 【インポート】読み込み完了後、前回の作業中の画面へ自動ジャンプ
     private async Task ImportDataWithStateAsync(InputFileChangeEventArgs e)
     {
         try
@@ -205,7 +205,7 @@
                     State.SavedTournaments = (List<TournamentInfo>)importedTournaments;
                     State.MasterSettings = (AppMasterSettings)importedMaster;
 
-                    // 💡 ファイル内に「前回の作業中ID」が記録されていれば、その大会をアクティブに復元
+                    // ファイル内に「前回の作業中ID」が記録されていれば、その大会をアクティブに復元
                     if (root.TryGetProperty("LastActiveTournamentId", out var idProp) &&
                         Guid.TryParse(idProp.GetString(), out Guid activeId))
                     {
@@ -229,8 +229,9 @@
 
                     menuMessage = "✅ 続きから再開しました！";
 
-                    // 💡 作業中の画面（出場チーム選択画面など）へ自動的に遷移・リフレッシュさせる
-                    Navigation.NavigateTo("/team-selection", forceLoad: true);
+                    // 作業中の画面へ自動的に遷移・リフレッシュさせる
+                    Navigation.NavigateTo(
+                        State.CurrentTournament ?.ScreenDuringOperation, forceLoad: true);
                 }
             }
             else

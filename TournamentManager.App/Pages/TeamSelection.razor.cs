@@ -22,6 +22,11 @@ namespace TournamentManager.App.Pages
         //{
         //}
 
+        protected override void OnInitialized()
+        {
+            State.CurrentTournament.ScreenDuringOperation = "/team-selection";
+        }
+
         // 画面遷移して戻ってきたときに、もし別の画面でIndexedDBが更新されていればここで最新データを再ロードします
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
