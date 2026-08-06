@@ -22,7 +22,10 @@ namespace TournamentManager.App.Pages
 
         protected override void OnInitialized()
         {
-            State.CurrentTournament.ScreenDuringOperation = "/lottery-draw";
+            if (State.CurrentTournament != null)
+            {
+                State.CurrentTournament.ScreenDuringOperation = "/lottery-draw";
+            }
 
             // 画面起動時、Stateから同期的にデータを復元する
             activeGender = !string.IsNullOrEmpty(State.CurrentGender) ? State.CurrentGender : "Men";
@@ -31,11 +34,7 @@ namespace TournamentManager.App.Pages
             InitializeTeams();
 
             // 出場チーム数に変化があれば、bracket作成データを再構築する。
-            BracketData bracketData = new BracketData()
-            {
-                NumOfTeams = _confirmedTeamsList.Count,
-            };
-            bracketData.GenerateBracketbuildingData();
+            _engine.RebuildBracketData(_confirmedTeamsList.Count);
 
             RefreshBracket();
         }
@@ -73,12 +72,15 @@ namespace TournamentManager.App.Pages
 
         private void InitializeTeams()
         {
-            if (State.CurrentTournament == null) return;
+            if (State.CurrentTournament == null)
+            {
+                return;
+            }
 
             // チームマスタから、現在選択されているチーム、かつ【選択中の性別】のデータを引っ張ってくる
             _confirmedTeamsList = State.CurrentTournament.Teams
                 .Select(id => State.MasterSettings.Teams.FirstOrDefault(t => t.Id == id))
-                .Where(t => t != null && t.Gender == activeGender) // 👈 性別フィルターを適用
+                .Where(t => t != null && t.Gender == activeGender) // 性別フィルターを適用
                 .Select(t => new TeamMaster
                 {
                     Id = t!.Id,
@@ -108,7 +110,10 @@ namespace TournamentManager.App.Pages
             errorMessage = "";
             int targetSlotIndex = inputSlotNumber - 1;
 
-            if (State.CurrentTournament == null) return;
+            if (State.CurrentTournament == null)
+            {
+                return;
+            }
             var currentSlots = State.GetCurrentSlotAssignments();
 
             if (inputSlotNumber < 1 || inputSlotNumber > totalSlotsCount)

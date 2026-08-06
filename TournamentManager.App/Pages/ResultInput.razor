@@ -32,7 +32,7 @@
     </div>
 
     <svg width="1400" height="1200" viewBox="0 0 1400 1200" xmlns="http://w3.org">
-        <style>
+        <style type="text/css">
             .match-line {
                 stroke: #111111;
                 stroke-width: 2;
@@ -148,7 +148,10 @@
 
     protected override void OnInitialized()
     {
-        State.CurrentTournament.ScreenDuringOperation = "/result-input";
+        if (State.CurrentTournament != null)
+        {
+            State.CurrentTournament.ScreenDuringOperation = "/result-input";
+        }
 
         RefreshStructure();
     }

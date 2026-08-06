@@ -227,7 +227,6 @@ namespace TournamentManager.Core.Services
             return addMasterItem;
         }
 
-        // ファイルへデータを上書き保存する
         public string SerializeToJSON(object obj, Type type)
         {
             try
@@ -252,6 +251,12 @@ namespace TournamentManager.Core.Services
             }
         }
 
+        /// <summary>
+        /// JSON値を、objectTypeで指定されたインスタンスに変換します。
+        /// </summary>
+        /// <param name="jsonText"></param>
+        /// <param name="objectType"></param>
+        /// <returns></returns>
         public object? DeserializeFromJSON(string jsonText, Type objectType)
         {
             JsonSerializerOptions jsonSerializerOptions =

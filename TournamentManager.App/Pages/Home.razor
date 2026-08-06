@@ -144,15 +144,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentData);
-        if (!string.IsNullOrEmpty(jsonSavedTournaments))
-        {
-            var savedTournamentInfos = State.DeserializeFromJSON(jsonSavedTournaments, typeof(List<TournamentInfo>));
-            if (savedTournamentInfos != null)
-            {
-                State.SavedTournaments = (List<TournamentInfo>)savedTournamentInfos;
-            }
-        }
+        // IndexedDBからマスター情報（JSON）をロードして、クラスへ変換します。、
         string jsonAllTournamentMaster = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentMaster);
         if (!string.IsNullOrEmpty(jsonAllTournamentMaster))
         {
@@ -178,10 +170,35 @@
             }
         }
 
-        var firstMaster = State.MasterSettings.TournamentNames.FirstOrDefault();
-        if (firstMaster != null)
+        // IndexedDBから大会情報リスト（JSON）をロードして、クラスへ変換します。、
+        string jsonSavedTournaments = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyAllTournamentData);
+        if (!string.IsNullOrEmpty(jsonSavedTournaments))
         {
-            SelectedBaseNameId = firstMaster.Id;
+            var savedTournamentInfos = State.DeserializeFromJSON(jsonSavedTournaments, typeof(List<TournamentInfo>));
+            if (savedTournamentInfos != null)
+            {
+                State.SavedTournaments = (List<TournamentInfo>)savedTournamentInfos;
+            }
+        }
+
+        //
+        string jsonCurrentTournament = await JS.InvokeAsync<string>("loadFromIndexedDb", State.DbKeyCurrentTournamentData);
+        if (!string.IsNullOrEmpty(jsonCurrentTournament))
+        {
+            var currentTournamentInfo = State.DeserializeFromJSON(jsonCurrentTournament, typeof(TournamentInfo));
+            if (currentTournamentInfo!= null)
+            {
+                State.CurrentTournament = (TournamentInfo)currentTournamentInfo;
+                //SelectedBaseNameId = State.CurrentTournament.Id;
+            }
+        }
+        else
+        {
+            var firstMaster = State.MasterSettings.TournamentNames.FirstOrDefault();
+            if (firstMaster != null)
+            {
+                SelectedBaseNameId = firstMaster.Id;
+            }
         }
         UpdateTournamentName();
     }

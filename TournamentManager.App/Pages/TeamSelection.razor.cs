@@ -24,7 +24,10 @@ namespace TournamentManager.App.Pages
 
         protected override void OnInitialized()
         {
-            State.CurrentTournament.ScreenDuringOperation = "/team-selection";
+            if (State.CurrentTournament != null)
+            {
+                State.CurrentTournament.ScreenDuringOperation = "/team-selection";
+            }
         }
 
         // 画面遷移して戻ってきたときに、もし別の画面でIndexedDBが更新されていればここで最新データを再ロードします

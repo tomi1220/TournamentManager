@@ -212,8 +212,8 @@ namespace TournamentManager.Core.Models
 
         public Dictionary<Category, BracketData> BrackectDataDic { get; set; } = new Dictionary<Category, BracketData>();
 
-        public PartInfo _allDataInfo { get; set; } = new();
-        public Dictionary<int, PartInfo> _partDic { get; set; } = new Dictionary<int, PartInfo>();
+        public PartInfo AllDataInfo { get; set; } = new();
+        public Dictionary<int, PartInfo> PartDic { get; set; } = new Dictionary<int, PartInfo>();
     }
     /// <summary>
     /// パート毎の情報

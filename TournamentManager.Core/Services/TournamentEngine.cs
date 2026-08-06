@@ -16,16 +16,35 @@ namespace TournamentManager.Core.Services
         private const double RoundWidth = 100;
         private const double LeftMargin = 120;
 
+        private int[]? PureSeedArray;
+
+        public void RebuildBracketData(int numOfTeams)
+        {
+            BracketData bracketData = new BracketData()
+            {
+                NumOfTeams = numOfTeams,
+            };
+            bracketData.GenerateBracketbuildingData();
+
+            PureSeedArray = bracketData.PureSeedArray;
+        }
+
         public void BuildStructure(List<TeamMaster> activeTeams, Dictionary<int, string> slotAssignments, Dictionary<string, MatchResult> matchResults)
         {
             Matches.Clear();
             SvgTexts.Clear();
 
             int n = activeTeams.Count;
-            if (n < 2) return;
+            if (n < 2)
+            {
+                return;
+            }
 
             TotalSlots = 1;
-            while (TotalSlots < n) TotalSlots *= 2;
+            while (TotalSlots < n)
+            {
+                TotalSlots *= 2;
+            }
             int seedCount = TotalSlots - n;
 
             List<int> order = GetTournamentOrder(TotalSlots);

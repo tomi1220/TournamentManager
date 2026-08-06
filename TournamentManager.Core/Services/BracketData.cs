@@ -36,6 +36,10 @@ namespace TournamentManager.Core.Services
         /// チーム数
         /// </summary>
         public int NumOfTeams { get; set; }
+        public int[]? PureSeedArray
+        {
+            get { return _pureSeedArray; }
+        }
         #endregion
 
         #region メソッド
@@ -73,7 +77,7 @@ namespace TournamentManager.Core.Services
                 }
             }
 
-            _tournamentData._partDic.Add(1, partInfo);
+            _tournamentData.PartDic.Add(1, partInfo);
         }
         /// <summary>
         /// 作業用の枠を確保し、シード番号を埋める
